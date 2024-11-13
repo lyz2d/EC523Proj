@@ -15,7 +15,7 @@ Patch Embedding: this step mimic the idea of NLP Transformer to handle the image
 """
 
 class PatchEmbedding(nn.Module):
-    def __init__(self, img_size=224, patch_size=16, in_channels=3, embed_dim=768):
+    def __init__(self, img_size=32, patch_size=16, in_channels=3, embed_dim=768):
         super().__init__()
         self.num_patches = (img_size // patch_size) ** 2 # //: round down the division result
         # project the input into higher dimension space
