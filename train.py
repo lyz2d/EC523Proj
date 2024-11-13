@@ -31,8 +31,8 @@ transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+train_dataset = torchvision.datasets.CIFAR10(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', train=True, download=True, transform=transform)
+test_dataset = torchvision.datasets.CIFAR10(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', train=False, download=True, transform=transform)
 
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
