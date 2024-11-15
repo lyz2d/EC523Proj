@@ -1,10 +1,12 @@
 # train.py
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
 from vit_model import ViT  # Import the Vision Transformer model
@@ -20,22 +22,39 @@ EMBED_DIM = 768
 DEPTH = 12
 NUM_HEADS = 12
 MLP_RATIO = 4.0
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 EPOCHS = 10
 LEARNING_RATE = 1e-4
 
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
+
 # Data loading and preprocessing
+train_transforms = transforms.Compose([
+    transforms.RandomResizedCrop(64),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize(mean, std),
+])
+
+val_transforms = transforms.Compose([
+    transforms.Resize(64),
+    transforms.CenterCrop(64),
+    transforms.ToTensor(),
+    transforms.Normalize(mean, std),
+])
+
 transform = transforms.Compose([
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-train_dataset = torchvision.datasets.CIFAR10(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', train=True, download=True, transform=transform)
-test_dataset = torchvision.datasets.CIFAR10(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', train=False, download=True, transform=transform)
+train_dataset = ImageFolder(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', transform=train_transforms)
+val_dataset = ImageFolder(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', transform=val_transforms)
 
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
 # Initialize model, loss function, and optimizer
 model = ViT(img_size=IMG_SIZE, patch_size=PATCH_SIZE, num_classes=NUM_CLASSES, embed_dim=EMBED_DIM, depth=DEPTH, num_heads=NUM_HEADS, mlp_ratio=MLP_RATIO)
@@ -89,7 +108,7 @@ for epoch in range(EPOCHS):
     print(f"Epoch {epoch + 1}/{EPOCHS}")
     train_loss, train_accuracy = train_one_epoch(model, train_loader, criterion, optimizer, device)
     print(f"Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%")
-    val_loss, val_accuracy = evaluate(model, test_loader, criterion, device)
+    val_loss, val_accuracy = evaluate(model, val_loader, criterion, device)
     print(f"Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.2f}%\n")
 
 print("Training complete!")

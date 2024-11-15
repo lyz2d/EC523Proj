@@ -10,8 +10,10 @@ from transformers import ViTForImageClassification # This one is for Transformer
 """
 Patch Embedding: this step mimic the idea of NLP Transformer to handle the images. 
 1. projection: using a convolution layer to convert it into a 14x14 patches. 
-2. flattern: flattern the 2d patches into a sigle column
+2. flattern: flattern the 2d patches into a single column
 3. Transpose: modify the dimension to meet the requirement from the latter steps. 
+
+Problem: there is no in_channels=3 anymore. 
 """
 
 class PatchEmbedding(nn.Module):
@@ -97,7 +99,7 @@ class TransformerEncoderLayer(nn.Module):
 class ViT(nn.Module):
     def __init__(self, img_size=224, patch_size=16, num_classes=10, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4.0):
         super().__init__()
-
+        # Change embedding here
         self.patch_embed = PatchEmbedding(img_size, patch_size, in_channels=3, embed_dim=embed_dim)
         num_patches = self.patch_embed.num_patches
 
