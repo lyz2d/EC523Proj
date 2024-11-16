@@ -39,6 +39,12 @@ def apply_rotary_emb(
 
 # The RoPE module
 class laf_RoPE(nn.Module):
+    """
+    dim: int, the dimension of the embedding
+    thetas: list[float], the hyperparameters for the positional encoding
+
+    The out put dimension is BxLx5dim
+    """
     def __init__(self, dim, 
                  seq_len=512,
                  thetas=[10000.0, 10000.0, 10000.0, 10000.0, 10000.0]):
