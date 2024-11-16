@@ -1,7 +1,7 @@
 An example about how to load the training dataset with .parquet file using Kornia. 
 Please try to adjust it and fit it into get_patch.py and scale_angle_rotation.py
 
-'''
+```
 import pandas as pd
 import base64
 import io
@@ -44,4 +44,4 @@ std = torch.tensor([0.229, 0.224, 0.225])   # ImageNet std
 images_normalized = K.enhance.normalize(images_resized, mean, std)
 
 # images_normalized is now ready for use in training!
-'''
+```
