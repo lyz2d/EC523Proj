@@ -73,6 +73,9 @@ def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16]):
     # plt.imshow(p)
     return patch_resize,patch
 
+def get_resized_patch_tensor(patches):
+    pass
+
 ###############################################################################################################################
 
 if __name__ == "__main__":

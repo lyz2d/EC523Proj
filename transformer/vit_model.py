@@ -123,6 +123,7 @@ class ViT(nn.Module):
         self.patch_embed = PatchEmbedding(img_size, patch_size, in_channels=3, embed_dim=embed_dim)
         num_patches = self.patch_embed.num_patches
         self.max_point_num = max_point_num
+        self.patch_size = patch_size
 
         self.patch_to_vector = nn.Conv2d(3, embed_dim, kernel_size=patch_size, stride=1, padding=0)
 
@@ -150,7 +151,9 @@ class ViT(nn.Module):
 
         positions = torch.cat([positions, temp_eig, temp_angle], dim=-1)
         
-        x = get_resized_patch(x,temp_angle[:,:,0],
+        x = get_resized_patch(x,
+                              temp_angle[:,:,0],
+                              positions[:,:,0:2],
                               temp_eig[:,:,0]/2, 
                               temp_eig[:,:,1]/2, 
                               size=(self.patch_size, self.patch_size))
