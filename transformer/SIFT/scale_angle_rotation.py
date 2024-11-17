@@ -42,8 +42,9 @@ def get_laf_scale_and_angle(LAF: torch.Tensor) -> torch.Tensor:
     # angle_rad = torch.atan2(temp[..., 1, 0], temp[..., 0, 0])
     # torch.atan2( sin, cos)
     
+    degree =  angle_rad * (180 / torch.pi)
 
-    return eig, V, np.rad2deg(angle_rad).unsqueeze(-1)
+    return eig, V, angle_rad.unsqueeze(-1)
 
 
 
