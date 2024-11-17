@@ -2,8 +2,27 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+'''
+The implementation of the Positional Embedding for our model.
+The positional embedding is actually the embedding of the position, scale and orientation of the patch.
+'''
+
+# The relative position embedding
+class RelativeAttentionBias(nn.Module):
+    def __init__(self, dim, max_len=128):
+        super().__init__()
+        self.dim = dim
+        self.max_len = max_len
+        self.proj = nn.Linear(5,dim)
 
 
+    def forward(self, positions) -> torch.Tensor: # positions: BxLx5
+        # padding 0 for CLS token positional embedding
+        embedding = F.pad(positions, pad=(0, 0, 1, 0), mode='constant', value=0) # Bx(L+1)x5
+
+        bias = embedding.unsqueeze(2) - embedding.unsqueeze(1) # Bx(L+1)x(L+1)x5
+        bias = self.proj(bias) # Bx(L+1)x(L+1)xD
+        return bias
 
 
 
