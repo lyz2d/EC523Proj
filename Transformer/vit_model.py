@@ -123,6 +123,8 @@ class ViT(nn.Module):
         num_patches = self.patch_embed.num_patches
         self.max_point_num = max_point_num
 
+        self.patch_to_vector = nn.Conv2d(3, embed_dim, kernel_size=patch_size, stride=1, padding=0)
+
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
 
         # self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
@@ -152,6 +154,8 @@ class ViT(nn.Module):
                               temp_eig[:,:,1]/2, 
                               size=(self.patch_size, self.patch_size))
 
+        x = self.patch_to_vector(x)
+        
         cls_token = self.cls_token.expand(x.shape[0], -1, -1)
         x = torch.cat((cls_token, x), dim=1)
         # x = x + self.pos_embed
