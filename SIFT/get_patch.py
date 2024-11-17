@@ -75,46 +75,49 @@ def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16]):
 
 ###############################################################################################################################
 
-device = torch.device("cpu")
+if __name__ == "__main__":
+    device = torch.device("cpu")
 
 
-feature = KF.KeyNetAffNetHardNet(5000, True).eval().to(device)
-img1 = K.io.load_image('image.jpg', K.io.ImageLoadType.RGB32, device=device)[None, ...]
-with torch.inference_mode():
-    lafs1, resps1, descs1 = feature(K.color.rgb_to_grayscale(img1))
+    feature = KF.KeyNetAffNetHardNet(5000, True).eval().to(device)
+    img1 = K.io.load_image('../Data/image.jpg', K.io.ImageLoadType.RGB32, device=device)[None, ...]
+    with torch.inference_mode():
+        lafs1, resps1, descs1 = feature(K.color.rgb_to_grayscale(img1))
 
 
-import random
-# n = 3  # Number of random items you want to pick
-# random_items = random.sample(range(lafs1.shape[1]), n)
-random_items=[80,90,100]
+    import random
+    from scale_angle_rotation import get_laf_scale_and_angle
 
-visualize_LAF(img1, lafs1[:,torch.tensor(random_items),:,:])
+    # n = 3  # Number of random items you want to pick
+    # random_items = random.sample(range(lafs1.shape[1]), n)
+    random_items=[80,90,100]
 
-
-
-
+    visualize_LAF(img1, lafs1[:,torch.tensor(random_items),:,:])
 
 
-###############################################################################################################################
-temp_eig,temp_V,temp_angle=K.feature.laf.get_laf_scale_and_angle(lafs1)   # function ‘get_laf_scale_and_angle‘ should be defined in laf.py
-temp_center=K.feature.laf.get_laf_center(lafs1)   # function ‘get_laf_center‘ is a bulit-in function
 
 
-for p in random_items:
-    angle = temp_angle[0,p,0].float().item()
-    position=temp_center[0,p,:]
-    len_major=temp_eig[0,p,0]/2
-    len_minor=temp_eig[0,p,1]/2
-    size=[16,16]
 
-    temp_resized_patch,temp_patch=get_resized_patch(img1,angle,position,len_major,len_minor,size)
-    plt.figure()
-    plt.imshow(temp_patch)
-    plt.figure()
-    plt.imshow(temp_resized_patch)
 
-plt.pause(0.001)
-input(".")
+    ###############################################################################################################################
+    temp_eig,temp_V,temp_angle=get_laf_scale_and_angle(lafs1)   # function ‘get_laf_scale_and_angle‘ should be defined in laf.py
+    temp_center=K.feature.laf.get_laf_center(lafs1)   # function ‘get_laf_center‘ is a bulit-in function
+
+
+    for p in random_items:
+        angle = temp_angle[0,p,0].float().item()
+        position=temp_center[0,p,:]
+        len_major=temp_eig[0,p,0]/2
+        len_minor=temp_eig[0,p,1]/2
+        size=[16,16]
+
+        temp_resized_patch,temp_patch=get_resized_patch(img1,angle,position,len_major,len_minor,size)
+        plt.figure()
+        plt.imshow(temp_patch)
+        plt.figure()
+        plt.imshow(temp_resized_patch)
+
+    plt.pause(0.001)
+    input(".")
 
 
