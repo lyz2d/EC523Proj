@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
 
     feature = KF.KeyNetAffNetHardNet(5000, True).eval().to(device)
-    img1 = K.io.load_image('image.jpg', K.io.ImageLoadType.RGB32, device=device)[None, ...]
+    img1 = K.io.load_image('../Data/image.jpg', K.io.ImageLoadType.RGB32, device=device)[None, ...]
     with torch.inference_mode():
         lafs1, resps1, descs1 = feature(K.color.rgb_to_grayscale(img1))
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
     i=0
 
-    temp_eig,temp_V,temp_angle=K.feature.laf.get_laf_scale_and_angle(lafs1)
+    temp_eig,temp_V,temp_angle=get_laf_scale_and_angle(lafs1)
     # temp1=torch.linspace( 0, temp_eig[0,p,i]/2,10 )
     # temp2=temp_V[0,p,i,0]
     # temp3=temp_V[0,p,i,1]
