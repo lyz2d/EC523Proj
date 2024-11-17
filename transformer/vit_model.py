@@ -6,6 +6,16 @@ TODO: Handling the feature patch: resize the patch to the same size. [PatchEmbed
 import torch
 import torch.nn as nn
 from transformers import ViTForImageClassification # This one is for Transformer comparison
+import kornia as K
+import kornia.feature as KF
+from kornia_moons.viz import *
+from kornia.core.check import KORNIA_CHECK_LAF, KORNIA_CHECK_SHAPE
+
+from SIFT.get_patch import get_resized_patch
+from SIFT.scale_angle_rotation import get_laf_scale_and_angle
+
+from embedding import RelativeAttentionBias
+
 
 """
 Patch Embedding: this step mimic the idea of NLP Transformer to handle the images. 
@@ -54,14 +64,15 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(0.1)               # Why dropout? 
         self.proj = nn.Linear(embed_dim, embed_dim)    # Projection
 
-    def forward(self, x):
+    def forward(self, x, pos_embedding):
 
         B, N, C = x.shape # x shape: [batch_size, num_patches, embed_dim], B, N, C
         # qkv: query, key, value;  first convert to embedding
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4) 
         q, k, v = qkv[0], qkv[1], qkv[2] 
+
         # Generate the trainable weights
-        attn_weights = (q @ k.transpose(-2, -1)) / (self.head_dim ** 0.5) 
+        attn_weights = (q @ k.transpose(-2, -1)+pos_embedding) / (self.head_dim ** 0.5) 
         # softmax: 
         # converting the raw attention scores into a probability distribution ~ input patches. Amplify the relationship 
         # stabilizing gradients: smooth derivative 
@@ -97,15 +108,29 @@ class TransformerEncoderLayer(nn.Module):
         return x
 
 class ViT(nn.Module):
-    def __init__(self, img_size=224, patch_size=16, num_classes=10, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4.0):
+    def __init__(self, img_size=224, 
+                 patch_size=16, 
+                 num_classes=10, 
+                 embed_dim=768, 
+                 depth=12, 
+                 num_heads=12, 
+                 max_point_num=128, 
+                 mlp_ratio=4.0, 
+                 feature=KF.KeyNetAffNetHardNet,
+                 device=torch.device("cuda")):
         super().__init__()
         # Change embedding here
         self.patch_embed = PatchEmbedding(img_size, patch_size, in_channels=3, embed_dim=embed_dim)
         num_patches = self.patch_embed.num_patches
+        self.max_point_num = max_point_num
+        self.patch_size = patch_size
+
+        self.patch_to_vector = nn.Conv2d(3, embed_dim, kernel_size=patch_size, stride=1, padding=0)
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
 
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
+        # self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
+        self.pos_embed = RelativeAttentionBias(embed_dim, max_point_num)
 
         self.pos_drop = nn.Dropout(0.1)
         
@@ -117,16 +142,32 @@ class ViT(nn.Module):
 
         self.head = nn.Linear(embed_dim, num_classes)
 
-    def forward(self, x):
-        x = self.patch_embed(x)
+        self.feature = feature(max_point_num, True).eval().to(device)
 
+    def forward(self, x):
+        lafs, resps, descs = self.feature(K.color.rgb_to_grayscale(x))
+        positions = K.feature.laf.get_laf_center(lafs)
+        temp_eig,temp_V,temp_angle=get_laf_scale_and_angle(lafs)
+
+        positions = torch.cat([positions, temp_eig, temp_angle], dim=-1)
+        
+        x = get_resized_patch(x,
+                              temp_angle[:,:,0],
+                              positions[:,:,0:2],
+                              temp_eig[:,:,0]/2, 
+                              temp_eig[:,:,1]/2, 
+                              size=(self.patch_size, self.patch_size))
+
+        x = self.patch_to_vector(x)
+        
         cls_token = self.cls_token.expand(x.shape[0], -1, -1)
         x = torch.cat((cls_token, x), dim=1)
-        x = x + self.pos_embed
+        # x = x + self.pos_embed
         x = self.pos_drop(x)
 
+        pos_embedding = self.pos_embed(positions)
         for layer in self.encoder_layers:
-            x = layer(x)
+            x = layer(x,pos_embedding)
         x = self.norm(x)
 
         return self.head(x[:, 0])
