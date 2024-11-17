@@ -2,7 +2,16 @@
 
 # comment by YC: I put this function in laf.py
 
-def get_laf_scale_and_angle(LAF: Tensor) -> Tensor:
+import cv2
+import kornia as K
+import kornia.feature as KF
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from kornia_moons.viz import *
+from kornia.core.check import KORNIA_CHECK_LAF, KORNIA_CHECK_SHAPE
+
+def get_laf_scale_and_angle(LAF: torch.Tensor) -> torch.Tensor:
     """Return a scale of the LAFs.
 
     Args:
@@ -34,7 +43,7 @@ def get_laf_scale_and_angle(LAF: Tensor) -> Tensor:
     # torch.atan2( sin, cos)
     
 
-    return eig, V, rad2deg(angle_rad).unsqueeze(-1)
+    return eig, V, np.rad2deg(angle_rad).unsqueeze(-1)
 
 
 
@@ -49,51 +58,45 @@ def get_laf_scale_and_angle(LAF: Tensor) -> Tensor:
 # The following is a simple example to show how to use the output of get_laf_scale_and_angle
 
 
-import cv2
-import kornia as K
-import kornia.feature as KF
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-from kornia_moons.viz import *
+if __name__ == "__main__":
 
-# device = K.utils.get_cuda_or_mps_device_if_available()
-device = torch.device("cpu")
+    # device = K.utils.get_cuda_or_mps_device_if_available()
+    device = torch.device("cpu")
 
 
-feature = KF.KeyNetAffNetHardNet(5000, True).eval().to(device)
-img1 = K.io.load_image('image.jpg', K.io.ImageLoadType.RGB32, device=device)[None, ...]
-with torch.inference_mode():
-    lafs1, resps1, descs1 = feature(K.color.rgb_to_grayscale(img1))
+    feature = KF.KeyNetAffNetHardNet(5000, True).eval().to(device)
+    img1 = K.io.load_image('image.jpg', K.io.ImageLoadType.RGB32, device=device)[None, ...]
+    with torch.inference_mode():
+        lafs1, resps1, descs1 = feature(K.color.rgb_to_grayscale(img1))
 
 
-import random
-n = 10  # Number of random items you want to pick
-random_items = random.sample(range(lafs1.shape[1]), n)
-# visualize_LAF(img1, lafs1[:,torch.tensor(random_items),:,:])
-p=10
-visualize_LAF(img1, lafs1[:,[p],:,:])
+    import random
+    n = 10  # Number of random items you want to pick
+    random_items = random.sample(range(lafs1.shape[1]), n)
+    # visualize_LAF(img1, lafs1[:,torch.tensor(random_items),:,:])
+    p=10
+    visualize_LAF(img1, lafs1[:,[p],:,:])
 
-i=0
+    i=0
 
-temp_eig,temp_V,temp_angle=K.feature.laf.get_laf_scale_and_angle(lafs1)
-# temp1=torch.linspace( 0, temp_eig[0,p,i]/2,10 )
-# temp2=temp_V[0,p,i,0]
-# temp3=temp_V[0,p,i,1]
+    temp_eig,temp_V,temp_angle=K.feature.laf.get_laf_scale_and_angle(lafs1)
+    # temp1=torch.linspace( 0, temp_eig[0,p,i]/2,10 )
+    # temp2=temp_V[0,p,i,0]
+    # temp3=temp_V[0,p,i,1]
 
-temp4=torch.matmul( lafs1[0,p,:,0:2] /2  ,temp_V[0,p,i,0:2]) # get the major axis for oval
+    temp4=torch.matmul( lafs1[0,p,:,0:2] /2  ,temp_V[0,p,i,0:2]) # get the major axis for oval
 
-temp5=torch.linspace( 0, temp4[0],10 )
-temp6=torch.linspace( 0, temp4[1],10 )
+    temp5=torch.linspace( 0, temp4[0],10 )
+    temp6=torch.linspace( 0, temp4[1],10 )
 
 
-# print(temp_angle)
+    # print(temp_angle)
 
-temp_center=K.feature.laf.get_laf_center(lafs1)   # get the center for oval
-plt.plot(temp5+temp_center[0,p,0],temp6+temp_center[0,p,1] )
+    temp_center=K.feature.laf.get_laf_center(lafs1)   # get the center for oval
+    plt.plot(temp5+temp_center[0,p,0],temp6+temp_center[0,p,1] )
 
-angle_rad = torch.atan(temp4[1]/temp4[0])
+    angle_rad = torch.atan(temp4[1]/temp4[0])
 
-# print(torch.rad2deg(angle_rad))
+    # print(torch.rad2deg(angle_rad))
 
 
