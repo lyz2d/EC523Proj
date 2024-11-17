@@ -156,13 +156,18 @@ class ViT(nn.Module):
                               positions[:,:,0:2],
                               temp_eig[:,:,0]/2, 
                               temp_eig[:,:,1]/2, 
-                              size=(self.patch_size, self.patch_size))
+                              size=(self.patch_size, self.patch_size)) # BxPxLxLx3, NHWC format
 
-        x = self.patch_to_vector(x)
+        # permute the patches to convert it to NCHW format, BxPxLxLx3 -> BxPx3xLxL 
+        # and then pass it through the convolutional layer to get feature vector
+        x = self.patch_to_vector(x.permute(0, 1, 4, 2, 3)) # BxPxLxLx3 -> BxPx3xLxL 
         
         cls_token = self.cls_token.expand(x.shape[0], -1, -1)
         x = torch.cat((cls_token, x), dim=1)
+
+        # When using relative position embedding, we don't need to add the position embedding to the input
         # x = x + self.pos_embed
+        
         x = self.pos_drop(x)
 
         pos_embedding = self.pos_embed(positions)
