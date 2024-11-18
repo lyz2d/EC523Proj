@@ -9,10 +9,10 @@
 # (3) size_original: determine how large is the region used to generate patch, default:0.5
 # (4) size_resize: the size of the desired resized patch, default: [16,16]
          
-# output: tokens,         
+# output: tokens (patches),         
 # token: a list of lists of tokens for the data set
-# tokens[i] contains a list of all patches from the (i+1)-th image, tokens[i][j] is the patch corresponding to the (j+1)-th key points of (i+1)-th image 
-# tokens[i][j]: tensor, [size_resize[0],size_resize[1],3] for any i,j
+# tokens[i] contains a list of all patches from the (i+1)-th image.
+# tokens[i][j]: the patch corresponding to the (j+1)-th key points of (i+1)-th image. tensor: [size_resize[0],size_resize[1],3] for any i,j
 
 
 # 2. function "get_feature_from_LAF", 
@@ -32,7 +32,6 @@
 # Please note that V is not the axis of oval
 
 
-
 # 2. function "get_resized_patch"
 # input: 
 # (1) img: :tensor `(1, 3, size 1 of img, size 2 of img)`
@@ -40,10 +39,10 @@
 # (3) position: tensor (1 dimensional) of length 2, center of the oval/unresized patch
 # (4) len_major: torch, 0 dimension, the length of the major axis of the oval
 # (5) len_minor: torch, 0 dimension, the length of the minor axis of the oval
-# (6) size: list of length 2, the size of the desired resized patch, default: [16,16]
+# (6) size: list of length 2, the required size of the resized patch, default: [16,16]
         
-# output: corresponding resized patch (tensor: (size[0],size[1],3))
-    
+# output: corresponding resized patch (tensor: (size[0], size[1], 3))
+
 
 ################################################################################################################
 
