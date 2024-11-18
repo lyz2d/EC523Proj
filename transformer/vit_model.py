@@ -5,6 +5,7 @@ TODO: Handling the feature patch: resize the patch to the same size. [PatchEmbed
 """
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from transformers import ViTForImageClassification # This one is for Transformer comparison
 import kornia as K
 import kornia.feature as KF
@@ -64,7 +65,7 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(0.1)               # Why dropout? 
         self.proj = nn.Linear(embed_dim, embed_dim)    # Projection
 
-    def forward(self, x, pos_embedding):
+    def forward(self, x):
 
         B, N, C = x.shape # x shape: [batch_size, num_patches, embed_dim], B, N, C
         # qkv: query, key, value;  first convert to embedding
@@ -72,7 +73,7 @@ class Attention(nn.Module):
         q, k, v = qkv[0], qkv[1], qkv[2] 
 
         # Generate the trainable weights
-        attn_weights = (q @ k.transpose(-2, -1)+pos_embedding) / (self.head_dim ** 0.5) 
+        attn_weights = (q @ k.transpose(-2, -1)) / (self.head_dim ** 0.5) 
         # softmax: 
         # converting the raw attention scores into a probability distribution ~ input patches. Amplify the relationship 
         # stabilizing gradients: smooth derivative 
@@ -124,6 +125,7 @@ class ViT(nn.Module):
         num_patches = self.patch_embed.num_patches
         self.max_point_num = max_point_num
         self.patch_size = patch_size
+        self.embed_dim = embed_dim
 
         self.patch_to_vector = nn.Conv2d(3, embed_dim, kernel_size=patch_size, stride=1, padding=0)
 
@@ -152,17 +154,25 @@ class ViT(nn.Module):
         positions = torch.cat([positions, temp_eig, temp_angle], dim=-1)
         
         x = get_resized_patch_tensor(x,
-                              temp_angle[:,:,0],
-                              positions[:,:,0:2],
-                              temp_eig[:,:,0]/2, 
-                              temp_eig[:,:,1]/2, 
-                              size=(self.patch_size, self.patch_size),
+                              positions[:,:,4], #angle
+                              positions[:,:,0:2], #position
+                              positions[:,:,2]/2, #temp_eig
+                              positions[:,:,3]/2,  #temp_eig
+                              size=(self.patch_size, self.patch_size), 
                               max_len=self.max_point_num, 
                               ) # BxPxLxLx3, NHWC format
+        
+        # pad it to max_point_num
+        x = F.pad(x, pad=(0, 0, 0, self.max_point_num - x.shape[1]), mode='constant', value=0) # BxPxLxLx3
 
         # permute the patches to convert it to NCHW format, BxPxLxLx3 -> BxPx3xLxL 
+        x = x.permute(0, 1, 4, 2, 3)
+        x_shape = x.shape
+        # resize it into 4d tensor, because the covolutional layer only accept 4d tensor
+        x=x.view(x_shape[0]*x_shape[1],*x_shape[-3:])
         # and then pass it through the convolutional layer to get feature vector
-        x = self.patch_to_vector(x.permute(0, 1, 4, 2, 3)) # BxPxLxLx3 -> BxPx3xLxL 
+        x = self.patch_to_vector(x) # (B*P)x3xLxL  -> (B*P)xEx1x1
+        x = x.view(*x_shape[:2], self.embed_dim) # back to BxPxE
         
         cls_token = self.cls_token.expand(x.shape[0], -1, -1)
         x = torch.cat((cls_token, x), dim=1)
@@ -172,9 +182,11 @@ class ViT(nn.Module):
 
         x = self.pos_drop(x)
 
-        pos_embedding = self.pos_embed(positions)
+        # calculate the relative position embedding
+        pos_embedding = self.pos_embed(positions)\
+        # we do not use relative position embedding permanently
         for layer in self.encoder_layers:
-            x = layer(x,pos_embedding)
+            x = layer(x)
         x = self.norm(x)
 
         return self.head(x[:, 0])
