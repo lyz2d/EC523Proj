@@ -28,6 +28,7 @@ def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16]):
 
         
     """
+    angle = float(angle)
     rotated_img=torchvision.transforms.functional.rotate(img,angle)
 
     # print(rotated_img.shape)
@@ -75,10 +76,16 @@ def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16]):
 
 def get_resized_patch_tensor(img,angle,position,len_major,len_minor,size=[16,16],max_len=128):
     batch_size = position.shape[0]
+    point_num = position.shape[1]
     patches = torch.zeros((batch_size, max_len, size[0], size[1], 3), device=img.device) # BxPxLxLx3
     for batch in range(batch_size):
-        for i in range(max_len):
-            patch, _ = get_resized_patch(img[batch],angle[i],position[i],len_major[i],len_minor[i],size)
+        for i in range(point_num):
+            patch, _ = get_resized_patch(img[batch].unsqueeze(0),
+                                         angle[batch,i],
+                                         position[batch,i],
+                                         len_major[batch,i],
+                                         len_minor[batch,i],
+                                         size)
             patches[batch,i] = patch
     return patches
     
