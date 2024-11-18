@@ -13,6 +13,10 @@ import kornia.feature as KF
 
 from vit_model import ViT  # Import the Vision Transformer model
 
+from datasets import load_dataset
+
+
+
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -54,15 +58,23 @@ transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-train_dataset = ImageFolder(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', transform=train_transforms)
-val_dataset = ImageFolder(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', transform=val_transforms)
+# train_dataset = ImageFolder(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', transform=train_transforms)
+# val_dataset = ImageFolder(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', transform=val_transforms)
 
 # TODO: problem: filter the binary images. Make sure RaFs correspond to the images. 
+
+train_dataset = load_dataset("zh-plus/tiny-imagenet", split='train').set_transform(train_transforms)
+val_dataset = load_dataset("zh-plus/tiny-imagenet", split='valid').set_transform(val_transforms)
 
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
 ###################################################################################################
+
+# ds = load_dataset("zh-plus/tiny-imagenet")
+
+# train_loader = DataLoader(ds['train'], batch_size=16, shuffle=True)
+# val_loader = DataLoader(ds['valid'], batch_size=16, shuffle=False)
 
 
 # Initialize model, loss function, and optimizer
