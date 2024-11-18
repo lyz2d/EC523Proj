@@ -9,23 +9,27 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
+import kornia.feature as KF
+
 from vit_model import ViT  # Import the Vision Transformer model
 
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Model and training parameters
-IMG_SIZE = 224
+IMG_SIZE = 64
 PATCH_SIZE = 16
 NUM_CLASSES = 10
-EMBED_DIM = 768
+EMBED_DIM = 768    # Potential problem: too many parameters
 DEPTH = 12
 NUM_HEADS = 12
 MLP_RATIO = 4.0
 BATCH_SIZE = 64
 EPOCHS = 10
 LEARNING_RATE = 1e-4
+MAX_POINT_NUM = 64
 
+##########################################################################################
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
 
@@ -56,8 +60,21 @@ val_dataset = ImageFolder(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
+###################################################################################################
+
+
 # Initialize model, loss function, and optimizer
-model = ViT(img_size=IMG_SIZE, patch_size=PATCH_SIZE, num_classes=NUM_CLASSES, embed_dim=EMBED_DIM, depth=DEPTH, num_heads=NUM_HEADS, mlp_ratio=MLP_RATIO)
+model = ViT(img_size=IMG_SIZE,
+            patch_size=PATCH_SIZE,
+            num_classes=NUM_CLASSES, 
+            embed_dim=EMBED_DIM, 
+            depth=DEPTH, 
+            num_heads=NUM_HEADS, 
+            max_point_num = MAX_POINT_NUM,
+            mlp_ratio=MLP_RATIO,
+            feature = KF.KeyNetAffNetHardNet,
+            )
+
 model = model.to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
