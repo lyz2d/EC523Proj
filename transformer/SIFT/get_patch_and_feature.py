@@ -109,13 +109,13 @@ def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16]):
     return patch_resize
 
 ###############################################################################################################################
-def get_patch_for_dataset(batch_images,LAFs,size_original=0.5,size_resize=[16,16]):
+def get_patch_for_dataset(batch_images,LAFs,size_original=0.5,size_resize=[16,16], max_point_num=64):
     
     """
     Return the tokens for a batch of images, where one image is of size (3, size 1 of img, size 2 of img)
 
     Args:
-        img: :`(B, 3, size 1 of img, size 2 of img)`
+        batch_images: :`(B, 3, size 1 of img, size 2 of img)`
         LAFs: list of lafs tensor, LAFs[i] is the lafs tensor of dimension (1,number of key point,2,3) for (i+1)-th images
         size_original: determine how large is the region used to generate patch
         size_resize:list of length 2, the size of the desired resized patch, default: [16,16]
@@ -127,7 +127,11 @@ def get_patch_for_dataset(batch_images,LAFs,size_original=0.5,size_resize=[16,16
         tokens[i][j]: tensor, [size_resize[0],size_resize[1],3] for any i,j
 
     """
-
+    batch, _, _, _ = batch_images.shape
+    assert batch==len(LAFs)
+    
+    patch_tensor=torch.zeros(batch, max_point_num, size_resize[0], size_resize[1], 3)
+    
     tokens=[]
     for i in range(len(LAFs)):
         lafs=LAFs[i]
@@ -136,7 +140,7 @@ def get_patch_for_dataset(batch_images,LAFs,size_original=0.5,size_resize=[16,16
         temp_center=get_laf_center(lafs)   
         # use size_patch to control the size of original patch
             
-        token_from_img=[]
+        #token_from_img=[]
 
         for p in range(lafs.shape[1]):
             angle = temp_angle[0,p,0].float().item()
@@ -146,10 +150,12 @@ def get_patch_for_dataset(batch_images,LAFs,size_original=0.5,size_resize=[16,16
             size=size_resize
 
             temp_resized_patch=get_resized_patch(img,angle,position,len_major,len_minor,size)
-            token_from_img.append(temp_resized_patch)
+            # token_from_img.append(temp_resized_patch)
+            if p < max_point_num:
+                patch_tensor[i,p,:,:,:]=temp_resized_patch
         
-        tokens.append(token_from_img)
-    return tokens
+        #tokens.append(token_from_img)
+    return patch_tensor
  
 ################################################################################################################
 
@@ -230,7 +236,7 @@ if __name__ == "__main__":
     
     import load_dataset2tensor as load_dataset
     
-    filename="train.parquet"
+    filename="../Data/train.parquet"
     # Start the timer
     import time
     start_time = time.time()
@@ -252,13 +258,14 @@ if __name__ == "__main__":
     # Start the timer
     start_time = time.time()
 
-    LAFs = torch.load('LAFs_from_train_set_all.pt', map_location=torch.device('cpu'))
-    LAFs=LAFs[0:1000]
+    LAFs = torch.load('../Data/LAFs_from_train_set.pt', map_location=torch.device('cpu'))
+    LAFs=LAFs[0:100]
     
 
     print(len(LAFs))
 
-    tokens=get_patch_for_dataset(image_tensor,LAFs)
+    tokens=get_patch_for_dataset(image_tensor[0:100],LAFs)
+    print(tokens.shape)
     # tokens[i] contains a list of patch from the i-th image, tokens[i][j] is the patch corresponding to the j-th key points of i-th image        
             
     end_time = time.time()
@@ -266,7 +273,7 @@ if __name__ == "__main__":
     # Calculate and print the elapsed time
     elapsed_time = end_time - start_time
 
-    torch.save(tokens, 'patches_from_train_set.pt') 
+    # torch.save(tokens, 'patches_from_train_set.pt') 
     print(f"process {len(LAFs):.6f} images in total, time taken: {elapsed_time:.6f} seconds")
         
 
