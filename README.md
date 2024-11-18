@@ -5,7 +5,8 @@ This repo is the code for EC523 Project, Scale-invariant feature transform (SIFT
 
 ## Content
 ### SIFT
-
+First get patches from all images in the dataset using the `get_patch_and_feature.py` script. This will output a list of tokens, where each row *i* is an image with variable number of patches. Each patch (token[i][j]) is represented as a tensor.
 ### Transformer
 
-### Data set
+### Dataset
+The dataset used is TinyImagenet, which has 110k 64x64 colored images with 200 classes. 
