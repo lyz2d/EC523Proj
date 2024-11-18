@@ -17,7 +17,7 @@
 
 # 2. function "get_feature_from_LAF", 
 # input: LAFs for batch of images; 
-# output: (1)scale, (2)angle, (3)center
+# output: (1)scale (the size of the ellipsoid), (2)angle, (3) center (position in image)
 # scale: tensor:`(B, N, 2)`  , eig[B, N, 0] gives you the greatest scale/singular value
 # angle: tensor:`(B, N, 1)`,  the angel between the major axis of oval and the x-axis
 # center: tensor:`(B, N, 2)`
