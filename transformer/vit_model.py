@@ -11,7 +11,7 @@ import kornia.feature as KF
 from kornia_moons.viz import *
 from kornia.core.check import KORNIA_CHECK_LAF, KORNIA_CHECK_SHAPE
 
-from SIFT.get_patch import get_resized_patch
+from SIFT.get_patch import get_resized_patch, get_resized_patch_tensor
 from SIFT.scale_angle_rotation import get_laf_scale_and_angle
 
 from embedding import RelativeAttentionBias
@@ -144,19 +144,21 @@ class ViT(nn.Module):
 
         self.feature = feature(max_point_num, True).eval().to(device)
 
-    def forward(self, x):
-        lafs, resps, descs = self.feature(K.color.rgb_to_grayscale(x))
+    def forward(self, x, lafs):
+        #lafs, resps, descs = self.feature(K.color.rgb_to_grayscale(x))
         positions = K.feature.laf.get_laf_center(lafs)
         temp_eig,temp_V,temp_angle=get_laf_scale_and_angle(lafs)
 
         positions = torch.cat([positions, temp_eig, temp_angle], dim=-1)
         
-        x = get_resized_patch(x,
+        x = get_resized_patch_tensor(x,
                               temp_angle[:,:,0],
                               positions[:,:,0:2],
                               temp_eig[:,:,0]/2, 
                               temp_eig[:,:,1]/2, 
-                              size=(self.patch_size, self.patch_size)) # BxPxLxLx3, NHWC format
+                              size=(self.patch_size, self.patch_size),
+                              max_len=self.max_point_num, 
+                              ) # BxPxLxLx3, NHWC format
 
         # permute the patches to convert it to NCHW format, BxPxLxLx3 -> BxPx3xLxL 
         # and then pass it through the convolutional layer to get feature vector
@@ -167,7 +169,7 @@ class ViT(nn.Module):
 
         # When using relative position embedding, we don't need to add the position embedding to the input
         # x = x + self.pos_embed
-        
+
         x = self.pos_drop(x)
 
         pos_embedding = self.pos_embed(positions)

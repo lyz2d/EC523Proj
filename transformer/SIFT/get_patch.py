@@ -73,8 +73,15 @@ def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16]):
     # plt.imshow(p)
     return patch_resize,patch
 
-def get_resized_patch_tensor(patches):
-    pass
+def get_resized_patch_tensor(img,angle,position,len_major,len_minor,size=[16,16],max_len=128):
+    batch_size = position.shape[0]
+    patches = torch.zeros((batch_size, max_len, size[0], size[1], 3), device=img.device) # BxPxLxLx3
+    for batch in range(batch_size):
+        for i in range(max_len):
+            patch, _ = get_resized_patch(img[batch],angle[i],position[i],len_major[i],len_minor[i],size)
+            patches[batch,i] = patch
+    return patches
+    
 
 ###############################################################################################################################
 
