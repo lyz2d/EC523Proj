@@ -57,7 +57,9 @@ transform = transforms.Compose([
 train_dataset = ImageFolder(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', transform=train_transforms)
 val_dataset = ImageFolder(root='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/data', transform=val_transforms)
 
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+# TODO: problem: filter the binary images. Make sure RaFs correspond to the images. 
+
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
 ###################################################################################################
@@ -109,7 +111,7 @@ def evaluate(model, dataloader, criterion, device):
     with torch.no_grad():
         for images, labels in tqdm(dataloader, desc="Evaluating", leave=False):
             images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
+            outputs = model(images)  # Add lafs
             loss = criterion(outputs, labels)
             running_loss += loss.item()
             _, predicted = outputs.max(1)

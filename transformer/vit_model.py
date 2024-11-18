@@ -168,21 +168,26 @@ class ViT(nn.Module):
 
         self.feature = feature(max_point_num, True).eval().to(device)
 
-    def forward(self, x, lafs):
-        #lafs, resps, descs = self.feature(K.color.rgb_to_grayscale(x))
+    def forward(self, x):
+        lafs = []
+        for i in x:
+            laf, resps, descs = self.feature(K.color.rgb_to_grayscale(i))
+            lafs.append(laf)
+        lafs = torch.tensor(lafs)
+        # lafs, resps, descs = self.feature(K.color.rgb_to_grayscale(x))# should be in a for loop
         positions = K.feature.laf.get_laf_center(lafs)
         temp_eig,temp_V,temp_angle=get_laf_scale_and_angle(lafs)
 
         positions = torch.cat([positions, temp_eig, temp_angle], dim=-1)
         
         x = get_resized_patch_tensor(x,
-                              positions[:,:,4], #angle
-                              positions[:,:,0:2], #position
-                              positions[:,:,2]/2, #temp_eig
-                              positions[:,:,3]/2,  #temp_eig
-                              size=(self.patch_size, self.patch_size), 
-                              max_len=self.max_point_num, 
-                              ) # BxPxLxLx3, NHWC format
+                                positions[:,:,4], #angle
+                                positions[:,:,0:2], #position
+                                positions[:,:,2]/2, #temp_eig
+                                positions[:,:,3]/2,  #temp_eig
+                                size=(self.patch_size, self.patch_size), 
+                                max_len=self.max_point_num, 
+                                ) # BxPxLxLx3, NHWC format
         
         # pad it to max_point_num
         x = F.pad(x, pad=(0, 0, 0, self.max_point_num - x.shape[1]), mode='constant', value=0) # BxPxLxLx3
