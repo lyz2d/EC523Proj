@@ -2,7 +2,19 @@
 # Instructions:
 # (all the functions in this file can work without import kornia)
 
-# 1. function "get_patch_for_dataset", 
+
+# 1. function "get_resized_patch"
+# input: 
+# (1) img: :tensor `(1, 3, size 1 of img, size 2 of img)`
+# (2) angle : 'float' (not tensor), in degree instead of rad
+# (3) position: tensor (1 dimensional) of length 2, center of the oval/unresized patch
+# (4) len_major: torch, 0 dimension, the length of the major axis of the oval
+# (5) len_minor: torch, 0 dimension, the length of the minor axis of the oval
+# (6) size: list of length 2, the required size of the resized patch, default: [16,16]
+        
+# output: corresponding resized patch (tensor: (size[0], size[1], 3))
+
+# 2. function "get_patch_for_dataset", 
 # This function goes over the images of the dataset and creates a list of tokens, where each row has the patches (tokens) of each image. The row
 # length varies per image. Each position in the row (tokens[i][j]) by a patch (token) represented as a tensor.
 # input : 
@@ -16,8 +28,13 @@
 # tokens[i] contains a list of all patches from the (i+1)-th image.
 # tokens[i][j]: the patch corresponding to the (j+1)-th key points of (i+1)-th image. tensor: [size_resize[0],size_resize[1],3] for any i,j
 
+# 3. function "get_laf_scale_and_angle", input: LAFs for batch of images; output: (1)eig, (2)V, (3)angle, where
+# eig :math:`(B, N, 2)`  , eig[B, N, 0] gives you the greatest scale/singular value
+# V :math:`(B, N, 2, 2)`, V[:,:,0;1,0:2] or V[:,:,0,0:2] gives you the singular vector correspodning to the greatest scale/singular value
+# angle :math:`(B, N, 1)`,  the angel between the major axis of oval and the x-axis
 
-# 2. function "get_feature_from_LAF", 
+
+# 4. function "get_feature_from_LAF", 
 # input: LAFs for batch of images; 
 # output: (1)scale (the size of the ellipsoid), (2)angle, (3) center (position in image)
 # B: batch, N: number of key points
@@ -26,25 +43,12 @@
 # center: tensor:`(B, N, 2)`
 
 
-# Some useful functions:
-# 1. function "get_laf_scale_and_angle", input: LAFs for batch of images; output: (1)eig, (2)V, (3)angle, where
-# eig :math:`(B, N, 2)`  , eig[B, N, 0] gives you the greatest scale/singular value
-# V :math:`(B, N, 2, 2)`, V[:,:,0;1,0:2] or V[:,:,0,0:2] gives you the singular vector correspodning to the greatest scale/singular value
-# angle :math:`(B, N, 1)`,  the angel between the major axis of oval and the x-axis
+
+
 
 # Please note that V is not the axis of oval
 
 
-# 2. function "get_resized_patch"
-# input: 
-# (1) img: :tensor `(1, 3, size 1 of img, size 2 of img)`
-# (2) angle : 'float' (not tensor), in degree instead of rad
-# (3) position: tensor (1 dimensional) of length 2, center of the oval/unresized patch
-# (4) len_major: torch, 0 dimension, the length of the major axis of the oval
-# (5) len_minor: torch, 0 dimension, the length of the minor axis of the oval
-# (6) size: list of length 2, the required size of the resized patch, default: [16,16]
-        
-# output: corresponding resized patch (tensor: (size[0], size[1], 3))
 
 
 ################################################################################################################
