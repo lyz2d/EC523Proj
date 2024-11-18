@@ -1,5 +1,5 @@
 ################################################################################################################
-# Instruction:
+# Instructions:
 # (all the functions in this file can work without import kornia)
 
 # 1. function "get_patch_for_dataset", 
