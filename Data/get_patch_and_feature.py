@@ -3,6 +3,8 @@
 # (all the functions in this file can work without import kornia)
 
 # 1. function "get_patch_for_dataset", 
+# This function goes over the images of the dataset and creates a list of tokens, where each row has the patches (tokens) of each image. The row
+# length varies per image. Each position in the row (tokens[i][j]) by a patch (token) represented as a tensor.
 # input : 
 # (1) batch of images(tensor) 
 # (2) corresponding LAFs(tensor);
