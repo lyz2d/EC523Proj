@@ -53,12 +53,42 @@
 
 ################################################################################################################
 
+
+
+
 import torchvision
 import cv2
 import torch
 
+def get_rotation_matrix_2d(center, angle, scale):
+    """
+    PyTorch 版本的 getRotationMatrix2D
+    参数:
+        center: (float, float) 旋转中心 (x, y)
+        angle: float 旋转角度（以度为单位）
+        scale: float 缩放因子
+    返回:
+        2x3 的旋转矩阵
+    """
+    # 将角度转换为弧度
+    angle_rad = torch.deg2rad(torch.tensor(angle))
+    
+    # 计算旋转矩阵的元素
+    alpha = scale * torch.cos(angle_rad)
+    beta = scale * torch.sin(angle_rad)
+    
+    # 构建旋转矩阵
+    matrix = torch.tensor([
+        [alpha, beta, (1 - alpha) * center[0] - beta * center[1]],
+        [-beta, alpha, beta * center[0] + (1 - alpha) * center[1]]
+    ])
+    
+    return matrix
+
+
+
 #############################################################################################################
-def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16]):
+def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16],device = 'cuda'):
     
     """Return a resize(distorted) patch of given size.
 
@@ -82,9 +112,9 @@ def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16]):
     cx, cy = img.shape[2]/2, img.shape[3]/2
 
     # Get the rotation matrix
-    rotation_matrix = cv2.getRotationMatrix2D((cx, cy), angle, 1.0)
-    rotation_matrix=torch.from_numpy(rotation_matrix)
-    rotation_matrix=rotation_matrix.to(torch.float)
+    rotation_matrix = get_rotation_matrix_2d((cx, cy), angle, 1.0).to(device)
+    #rotation_matrix=torch.from_numpy(rotation_matrix)
+    #rotation_matrix=rotation_matrix.to(torch.float)
 
     # adding 1 dimension renders [x,y] --> [x,y,1]
     # original_point=torch.cat([temp_center[0,p,:],torch.ones_like(temp_center[0,p,0:1])])
@@ -94,13 +124,12 @@ def get_resized_patch(img,angle,position,len_major,len_minor,size=[16,16]):
     # Calculate the new position by multiplying the rotation matrix
     new_point = torch.matmul(rotation_matrix, original_point)
     new_x, new_y = new_point[0,:], new_point[1,:]
-
-
+    
     patch=rotated_img[:,:,
-                    torch.max(torch.cat([new_y-len_minor,torch.tensor([0]) ]) ) .ceil().to(torch.int): 
-                    torch.min( torch.cat([new_y+len_minor,torch.tensor( rotated_img.shape[3:4]) ]) ).floor().to(torch.int),
-                    torch.max(torch.cat([new_x-len_major,torch.tensor([0]) ]) ).ceil().to(torch.int): 
-                    torch.min( torch.cat([new_x+len_major,torch.tensor( rotated_img.shape[2:3]) ]) ).floor().to(torch.int) 
+                    torch.max(torch.cat([new_y-len_minor,torch.tensor([0]).cuda() ]) ) .ceil().to(torch.int): 
+                    torch.min( torch.cat([new_y+len_minor,torch.tensor( rotated_img.shape[3:4]).cuda() ]) ).floor().to(torch.int),
+                    torch.max(torch.cat([new_x-len_major,torch.tensor([0]).cuda() ]) ).ceil().to(torch.int): 
+                    torch.min( torch.cat([new_x+len_major,torch.tensor( rotated_img.shape[2:3]).cuda() ]) ).floor().to(torch.int) 
                     ]    # the first two dimensions of patch match the single input img, which is [1,3,:,:]
 
 
@@ -136,7 +165,7 @@ def get_patch_for_dataset(batch_images,LAFs,size_original=0.5,size_resize=[16,16
     batch, _, _, _ = batch_images.shape
     assert batch==len(LAFs)
     
-    patch_tensor=torch.zeros(batch, max_point_num, size_resize[0], size_resize[1], 3)
+    patch_tensor=torch.zeros(batch, max_point_num, size_resize[0], size_resize[1], 3).cuda()
     
     tokens=[]
     for i in range(len(LAFs)):

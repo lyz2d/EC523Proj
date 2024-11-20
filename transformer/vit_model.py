@@ -176,14 +176,9 @@ class ViT(nn.Module):
         # for i in x:
         #     laf, resps, descs = self.feature(K.color.rgb_to_grayscale(i))
         #     lafs.append(laf)
-
-        laf_num=lafs.shape[1]
-
         
         # lafs, resps, descs = self.feature(K.color.rgb_to_grayscale(x))# should be in a for loop
         #positions = K.feature.laf.get_laf_center(lafs)
-        scale, angle, center=get_feature_from_LAF(lafs)
-
         # positions = torch.cat([positions, temp_eig, temp_angle], dim=-1)
         
 
@@ -213,7 +208,7 @@ class ViT(nn.Module):
         x = self.pos_drop(x)
 
         # calculate the relative position embedding
-        pos_embedding = self.pos_embed(positions)\
+        #pos_embedding = self.pos_embed(positions)
         # we do not use relative position embedding permanently
         for layer in self.encoder_layers:
             x = layer(x)

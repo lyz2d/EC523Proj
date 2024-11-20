@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
@@ -75,9 +75,17 @@ std = [0.229, 0.224, 0.225]
 
 # train_loader = DataLoader(ds['train'], batch_size=16, shuffle=True)
 # val_loader = DataLoader(ds['valid'], batch_size=16, shuffle=False)
+from SIFT.load_dataset2tensor import load_dataset2tensor
+
+train_img, train_label = load_dataset2tensor('Data/train.parquet')
+train_dataset = TensorDataset(train_img, train_label)
+
+# TODO: Add tranforms
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 
-train_img = load_dataset2tensor('train.parquet')
+LAFs = torch.load('Data/LAFs_from_train_set.pt')
+
 
 # Initialize model, loss function, and optimizer
 model = ViT(img_size=IMG_SIZE,
@@ -101,9 +109,9 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
     running_loss = 0.0
     correct = 0
     total = 0
-    for images, labels in tqdm(dataloader, desc="Training", leave=False):
+    for batch_idx, (images, labels) in enumerate(tqdm(dataloader, desc="Training", leave=False)):
         images, labels = images.to(device), labels.to(device)
-        outputs = model(images)
+        outputs = model(images, LAFs[BATCH_SIZE*batch_idx:BATCH_SIZE*(batch_idx+1)])  # Add lafs
         loss = criterion(outputs, labels)
         optimizer.zero_grad()
         loss.backward()
