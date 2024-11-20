@@ -62,22 +62,22 @@ import torch
 
 def get_rotation_matrix_2d(center, angle, scale):
     """
-    PyTorch 版本的 getRotationMatrix2D
-    参数:
-        center: (float, float) 旋转中心 (x, y)
-        angle: float 旋转角度（以度为单位）
-        scale: float 缩放因子
-    返回:
+    PyTorch getRotationMatrix2D
+    Parameters:
+        center: (float, float) 
+        angle: float 
+        scale: float 
+    Return:
         2x3 的旋转矩阵
     """
-    # 将角度转换为弧度
+    # Rad to degree
     angle_rad = torch.deg2rad(torch.tensor(angle))
     
-    # 计算旋转矩阵的元素
+    # Rotation matrix elements
     alpha = scale * torch.cos(angle_rad)
     beta = scale * torch.sin(angle_rad)
     
-    # 构建旋转矩阵
+    # Rotation matrix
     matrix = torch.tensor([
         [alpha, beta, (1 - alpha) * center[0] - beta * center[1]],
         [-beta, alpha, beta * center[0] + (1 - alpha) * center[1]]
