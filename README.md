@@ -4,7 +4,8 @@ This repository is for the BU EC523 Project, where implement a Scale-invariant f
 ![The SIFT-based Transformer framework running process](./process.png)
 
 # How to Use
-Run the `train.py` file to train the model. This will automatically make the image patches and features. 
+Run the `train.py` file to train the model. The directory path need to be modified. This will automatically make the image patches and features. 
+
 ## Content
 ### SIFT
 First get patches from all images in the dataset using the `get_patch_and_feature.py` script. This will output a list of tokens, where each row *i* is an image with variable number of patches. Each patch (token[i][j]) is represented as a tensor.
