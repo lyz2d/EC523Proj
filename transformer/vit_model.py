@@ -12,8 +12,8 @@ import kornia.feature as KF
 from kornia_moons.viz import *
 from kornia.core.check import KORNIA_CHECK_LAF, KORNIA_CHECK_SHAPE
 
-from SIFT.get_patch import get_resized_patch, get_resized_patch_tensor
-from SIFT.scale_angle_rotation import get_laf_scale_and_angle
+# from SIFT.get_patch import get_resized_patch, get_resized_patch_tensor
+# from SIFT.scale_angle_rotation import get_laf_scale_and_angle
 from SIFT.get_patch_and_feature import *
 
 
