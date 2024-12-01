@@ -154,6 +154,7 @@ def get_patch_for_dataset(batch_images,LAFs,size_original=0.5,size_resize=[16,16
         LAFs: list of lafs tensor, LAFs[i] is the lafs tensor of dimension (1,number of key point,2,3) for (i+1)-th images
         size_original: determine how large is the region used to generate patch
         size_resize:list of length 2, the size of the desired resized patch, default: [16,16]
+        max_point_num: integer, maximum number of key point
         
         
 
