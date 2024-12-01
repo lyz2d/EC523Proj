@@ -157,9 +157,7 @@ def get_patch_for_dataset(batch_images,LAFs,size_original=0.5,size_resize=[16,16
         
         
 
-    Returns: tokens, list of list of patch
-        tokens[i] contains a list of patch from the (i+1)-th image, tokens[i][j] is the patch corresponding to the (j+1)-th key points of (i+1)-th image 
-        tokens[i][j]: tensor, [size_resize[0],size_resize[1],3] for any i,j
+    Returns: patch_tensor, tensor, size: '(B, max number of keypoint, size_resize[0], size_resize[1], 3)'
 
     """
     batch, _, _, _ = batch_images.shape
