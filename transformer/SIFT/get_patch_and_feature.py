@@ -157,8 +157,9 @@ def get_patch_for_dataset(batch_images,LAFs,size_original=0.5,size_resize=[16,16
         
         
 
-    Returns: patch_tensor, tensor, size: '(B, max number of keypoint, size_resize[0], size_resize[1], 3)'
-    example: [b,p,:,:,:] is the resized patch of the p-th key point of the b-th image in the batch
+    Returns: patch_tensor, tensor, size: '(B, maximum number of keypoint, size_resize[0], size_resize[1], 3)'
+    example: [b,p,:,:,:] is the resized patch of the p-th key point of the b-th image in the batch; 
+    if the b-th image only has P key points, where P< maximum number of keypoint, then [b,P+1,:,:,:] is tensor of zeros
 
     """
     batch, _, _, _ = batch_images.shape
