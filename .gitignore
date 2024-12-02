@@ -1,3 +1,4 @@
 transformer/Data/
 transformer/lightning_logs/
 transformer/__pycache__/
+.vscode/
