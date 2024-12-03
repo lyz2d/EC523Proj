@@ -92,6 +92,7 @@ def list_lafs_to_tensor(LAFs,max_point_num=64):
     
 import kornia.feature as KF
 import kornia as K
+import numpy as np
 
 def get_lafs_for_batch_images(batch_images,max_point_num=64):
     """""
@@ -104,15 +105,15 @@ def get_lafs_for_batch_images(batch_images,max_point_num=64):
     batch_lafs: tensor of shape (B,max_point_num,2,3)
     """
     
-    keynet_feature = KF.KeyNetAffNetHardNet(5000, True).eval().to(device)
+    keynet_feature = KF.KeyNetAffNetHardNet(5000, True).eval()
 
     batch, _, _, _ = batch_images.shape
 
-    batch_lafs=torch.zeros(batch, max_point_num, 2, 3).to(device)
+    batch_lafs=torch.zeros(batch, max_point_num, 2, 3)
         
 
     for i in range(batch):
-        img=batch_images[i,:,:,:]
+        img=batch_images[i:i+1,:,:,:]
         with torch.inference_mode():
             lafs_keynet, resps_keynet, descs_keynet = keynet_feature(K.color.rgb_to_grayscale(img))
             
@@ -124,7 +125,6 @@ def get_lafs_for_batch_images(batch_images,max_point_num=64):
             batch_lafs[i,0:lafs_keynet.shape[0],:,:]=lafs_keynet
     return batch_lafs
         
-
 
 
 import torch.nn.functional as F
@@ -156,7 +156,7 @@ def get_patches_for_batch_iamges(batch_images,LAFs_tensor,size_resize=[16,16], m
     # batch_images must be of size (B,3,H ,W)
     # LAFs_tensor must be of size (B,max_point_num,2,3 )
     
-    patch_tensor=torch.zeros(batch, max_point_num,3, size_resize[0], size_resize[1]).to(device)
+    patch_tensor=torch.zeros(batch, max_point_num,3, size_resize[0], size_resize[1])
     
     temp1=torch.tensor([batch_images.shape[-2],batch_images.shape[-1]])/2
     temp1=temp1.view(1,1,1,2)
