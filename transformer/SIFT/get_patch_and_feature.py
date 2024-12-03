@@ -1,7 +1,48 @@
+##########################################################################################################
+# Important: please read this part and ignore the previous instructions, if we decide to use 
+# Pytorch built-in function "grid_sample" to get patches
+
+# Now, we only need to call 3 functions: (1) to compute LAF during the training loop; (2) to get the patches during the training loop;
+# (3) to get the features (scale, angle, position) for each patch, based on the LAF. 
+
+# 1.  function "get_lafs_for_batch_images":
+# input :
+# (1)batch_images, tensor of size (B,3,H,W)
+# (2)max_point_num, integer, the default value is 64
+
+# Output:
+# batch_lafs: tensor of shape '(B,max_point_num,2,3)'
+
+
+# 2. function "get_patches_for_batch_iamges"
+# input:
+# (1)batch_images, tensor of size  '(B,3,H,W)'
+# (2)LAFs_tensor, tensor of shape '(B,max_point_num,2,3)'
+# (3)size_resize, the size of the desired patch, default: [16,16]
+# (4)max_point_num, integer, the default value is 64
+
+# output: 
+# patch_tensor, tensor, size: '(B, max_point_num, 3, size_resize[0], size_resize[1])'
+    
+# example: [b,p,:,:,:] is the resized patch of the p-th key point of the b-th image in the batch; 
+# if the b-th image only has P key points, where P< maximum number of keypoint, then [b,P+1,:,:,:] is tensor of zeros
+
+# 3. function "get_feature_from_LAF", 
+# input: LAFs for batch of images,  tensor of size '(B, max_point_num, 2, 3)'
+
+# output: (1)scale (the size of the ellipsoid), (2)angle, (3) center (position in image)
+# B: batch, max_point_num: maximum number of key points
+# scale: tensor:`(B, max_point_num, 2)`  , eig[B, N, 0] gives you the greatest scale/singular value
+# angle: tensor:`(B, max_point_num, 1)`,  the angel between the major axis of oval and the x-axis
+# center: tensor:`(B, max_point_num, 2)`
+    
+    
+
+
+
+
 ################################################################################################################
 # Instructions:
-# (all the functions in this file can work without import kornia)
-
 
 # 1. function "get_resized_patch"
 # input: 
@@ -61,35 +102,7 @@ import cv2
 import torch
 
 ########################################################################
-def list_lafs_to_tensor(LAFs,max_point_num=64):
-    
-    """
-    Recall that we saved lafs for each images as a list of tensor, each elment (i.e. LAFs[i]) is a tensor of shape (1, N,2,3),
-    this function will return a lafs_tensor of shape (B,max_point_num,2,3 ) through zeros-padding
-    """
-    
-    assert type(LAFs)==list
-    
-    LAFs_tensor=torch.zeros(len(LAFs),max_point_num,2,3)
-    # torch.nn.utils.rnn.pad_sequence(LAFs,batch_first=True)
-    
-    
-    for i in range(len(LAFs)):
-        if LAFs[i].shape[1]>max_point_num:
-            print(f"the number of key points for some images is greater than the given maximum number of key point.")
-            
-            # to do: how to truncate if there are too many key points
-            
-        else:
-            LAFs_tensor[i,0:LAFs[i].shape[1],:,:]=LAFs[i].squeeze(0)
-        
-    return LAFs_tensor
-    
-    
-    
-    
-    
-    
+
 import kornia.feature as KF
 import kornia as K
 import numpy as np
@@ -132,7 +145,6 @@ import torch.nn.functional as F
 def get_patches_for_batch_iamges(batch_images,LAFs_tensor,size_resize=[16,16], max_point_num=64):
     
     """
-    Return the patch_tensor for a batch of images, where one image is of size (3, size 1 of img, size 2 of img)
 
     Args:
         batch_images: :`(B, 3, size 1 of img, size 2 of img)`
@@ -142,15 +154,15 @@ def get_patches_for_batch_iamges(batch_images,LAFs_tensor,size_resize=[16,16], m
         
         
 
-    Returns: patch_tensor, tensor, size: '(B, maximum number of keypoint, 3,size_resize[0], size_resize[1])'
+    Returns: patch_tensor, tensor, size: '(B, maximum number of keypoint, 3, size_resize[0], size_resize[1])'
     
     example: [b,p,:,:,:] is the resized patch of the p-th key point of the b-th image in the batch; 
     if the b-th image only has P key points, where P< maximum number of keypoint, then [b,P+1,:,:,:] is tensor of zeros
 
     """
     batch, _, _, _ = batch_images.shape
-    assert batch==LAFs_tensor.shape[0]
-    assert max_point_num==LAFs_tensor.shape[1]
+    assert batch==LAFs_tensor.shape[0],  "batch size of batch_images doesn't match batch size of LAFs"
+    assert max_point_num==LAFs_tensor.shape[1], "please make sure the max_num_point are consistent throughout the process"
     
 
     # batch_images must be of size (B,3,H ,W)
@@ -171,6 +183,31 @@ def get_patches_for_batch_iamges(batch_images,LAFs_tensor,size_resize=[16,16], m
     return patch_tensor
 
 
+###########################################################################################################
+def list_lafs_to_tensor(LAFs,max_point_num=64):
+    
+    """
+    Recall that we saved lafs for each images as a list of tensor, each elment (i.e. LAFs[i]) is a tensor of shape (1, N,2,3),
+    this function will return a lafs_tensor of shape (B,max_point_num,2,3 ) through zeros-padding
+    """
+    
+    assert type(LAFs)==list
+    
+    LAFs_tensor=torch.zeros(len(LAFs),max_point_num,2,3)
+    # torch.nn.utils.rnn.pad_sequence(LAFs,batch_first=True)
+    
+    
+    for i in range(len(LAFs)):
+        if LAFs[i].shape[1]>max_point_num:
+            print(f"the number of key points for some images is greater than the given maximum number of key point.")
+            
+            # to do: how to truncate if there are too many key points
+            
+        else:
+            LAFs_tensor[i,0:LAFs[i].shape[1],:,:]=LAFs[i].squeeze(0)
+        
+    return LAFs_tensor
+    
 
 ############################################################
 
