@@ -60,6 +60,120 @@ import torchvision
 import cv2
 import torch
 
+########################################################################
+def list_lafs_to_tensor(LAFs,max_point_num=64):
+    
+    """
+    Recall that we saved lafs for each images as a list of tensor, each elment (i.e. LAFs[i]) is a tensor of shape (1, N,2,3),
+    this function will return a lafs_tensor of shape (B,max_point_num,2,3 ) through zeros-padding
+    """
+    
+    assert type(LAFs)==list
+    
+    LAFs_tensor=torch.zeros(len(LAFs),max_point_num,2,3)
+    # torch.nn.utils.rnn.pad_sequence(LAFs,batch_first=True)
+    
+    
+    for i in range(len(LAFs)):
+        if LAFs[i].shape[1]>max_point_num:
+            print(f"the number of key points for some images is greater than the given maximum number of key point.")
+            
+            # to do: how to truncate if there are too many key points
+            
+        else:
+            LAFs_tensor[i,0:LAFs[i].shape[1],:,:]=LAFs[i].squeeze(0)
+        
+    return LAFs_tensor
+    
+    
+    
+    
+    
+    
+import kornia.feature as KF
+import kornia as K
+
+def get_lafs_for_batch_images(batch_images,max_point_num=64):
+    """""
+    compute lafs directly from a batch of images
+    
+    Args:
+    batch_images: tensor of size: (B,3,H,W)
+    
+    return:
+    batch_lafs: tensor of shape (B,max_point_num,2,3)
+    """
+    
+    keynet_feature = KF.KeyNetAffNetHardNet(5000, True).eval().to(device)
+
+    batch, _, _, _ = batch_images.shape
+
+    batch_lafs=torch.zeros(batch, max_point_num, 2, 3).to(device)
+        
+
+    for i in range(batch):
+        img=batch_images[i,:,:,:]
+        with torch.inference_mode():
+            lafs_keynet, resps_keynet, descs_keynet = keynet_feature(K.color.rgb_to_grayscale(img))
+            
+        lafs_keynet=lafs_keynet.squeeze(0)
+        if lafs_keynet.shape[0]>max_point_num:
+            items=np.linspace(0,lafs_keynet.shape[0]-1,max_point_num, dtype=int)
+            batch_lafs[i,:,:,:]=lafs_keynet[torch.tensor(items),:,:]
+        else:
+            batch_lafs[i,0:lafs_keynet.shape[0],:,:]=lafs_keynet
+    return batch_lafs
+        
+
+
+
+import torch.nn.functional as F
+
+def get_patches_for_batch_iamges(batch_images,LAFs_tensor,size_resize=[16,16], max_point_num=64):
+    
+    """
+    Return the patch_tensor for a batch of images, where one image is of size (3, size 1 of img, size 2 of img)
+
+    Args:
+        batch_images: :`(B, 3, size 1 of img, size 2 of img)`
+        LAFs:  tensor of size (B,max_point_num,2,3 )
+        size_resize:list of length 2, the size of the desired resized patch, default: [16,16]
+        max_point_num: integer, maximum number of key point
+        
+        
+
+    Returns: patch_tensor, tensor, size: '(B, maximum number of keypoint, 3,size_resize[0], size_resize[1])'
+    
+    example: [b,p,:,:,:] is the resized patch of the p-th key point of the b-th image in the batch; 
+    if the b-th image only has P key points, where P< maximum number of keypoint, then [b,P+1,:,:,:] is tensor of zeros
+
+    """
+    batch, _, _, _ = batch_images.shape
+    assert batch==LAFs_tensor.shape[0]
+    assert max_point_num==LAFs_tensor.shape[1]
+    
+
+    # batch_images must be of size (B,3,H ,W)
+    # LAFs_tensor must be of size (B,max_point_num,2,3 )
+    
+    patch_tensor=torch.zeros(batch, max_point_num,3, size_resize[0], size_resize[1]).to(device)
+    
+    temp1=torch.tensor([batch_images.shape[-2],batch_images.shape[-1]])/2
+    temp1=temp1.view(1,1,1,2)
+
+    
+    for i in range(max_point_num):
+        grid = F.affine_grid(LAFs_tensor[:,i,:,:],torch.Size((batch, 3, size_resize[0], size_resize[1])),align_corners = False)
+        grid_normalized=grid/temp1
+        grid_normalized=grid_normalized-torch.tensor([1,1]).view(1,1,1,2)
+        patch_tensor[:,i,:,:,:] = F.grid_sample(input=batch_images, grid=grid_normalized,mode='bilinear')
+        
+    return patch_tensor
+
+
+
+############################################################
+
 def get_rotation_matrix_2d(center, angle, scale):
     """
     PyTorch getRotationMatrix2D
@@ -68,7 +182,7 @@ def get_rotation_matrix_2d(center, angle, scale):
         angle: float 
         scale: float 
     Return:
-        2x3 的旋转矩阵
+        2x3 rotation matrix
     """
     # Rad to degree
     angle_rad = torch.deg2rad(torch.tensor(angle))
