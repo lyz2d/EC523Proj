@@ -14,17 +14,35 @@ Patch Embedding: this step mimic the idea of NLP Transformer to handle the image
 3. Transpose: modify the dimension to meet the requirement from the latter steps. 
 """
 
-class PatchEmbedding(nn.Module):
-    def __init__(self, img_size=224, patch_size=16, in_channels=3, embed_dim=768):
-        super().__init__()
-        self.num_patches = (img_size // patch_size) ** 2 # //: round down the division result
-        # project the input into higher dimension space
-        self.projection = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
+from einops import rearrange
+from einops.layers.torch import Rearrange
 
-    def forward(self, x):
-        x = self.projection(x) # x shape: [batch_size, embed_dim, num_patches_height, num_patches_width]
-        x = x.flatten(2) # x shape: [batch_size, embed_dim, num_patches] Merge the height and width into a single sequence
-        x = x.transpose(1, 2) # x shape: [batch_size, num_patches, embed_dim]
+class PatchEmbedding(nn.Module):
+    def __init__(self, img_size=224, patch_size=16, in_channels=3, embed_dim=768,num_patches=64):
+        super().__init__()
+        # self.num_patches = (img_size // patch_size) ** 2 # //: round down the division result
+        # # project the input into higher dimension space
+        # self.projection = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
+        self.num_patches=num_patches
+        self.patch_size=patch_size
+        patch_dim = in_channels * patch_size * patch_size
+        self.to_patch_embedding = nn.Sequential(
+            nn.LayerNorm(patch_dim),
+            nn.Linear(patch_dim, embed_dim),
+            nn.LayerNorm(embed_dim),
+        )
+        
+
+
+    def forward(self, x):  # the input is batch of img, tensor of shape (B,3,H,W)
+        # x = self.projection(x) # x shape: [batch_size, embed_dim, num_patches_height, num_patches_width]
+        # x = x.flatten(2) # x shape: [batch_size, embed_dim, num_patches] Merge the height and width into a single sequence
+        # x = x.transpose(1, 2) # x shape: [batch_size, num_patches, embed_dim]
+        batch_laf=get_lafs_for_batch_images(x,max_point_num=self.num_patches)
+        x=get_patches_for_batch_iamges(x,batch_laf,size_resize=[self.patch_size,self.patch_size], max_point_num=self.num_patches)
+        x=rearrange(x, 'b n c h1 w1 -> b n (c h1 w1)')
+        x=self.to_patch_embedding(x) 
+        
 
         return x
 
