@@ -118,11 +118,15 @@ def get_lafs_for_batch_images(batch_images,max_point_num=64):
     batch_lafs: tensor of shape (B,max_point_num,2,3)
     """
     
-    keynet_feature = KF.KeyNetAffNetHardNet(5000, True).eval()
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    device= batch_images.device
+    
+    keynet_feature = KF.KeyNetAffNetHardNet(5000, True).eval().to(device)
 
     batch, _, _, _ = batch_images.shape
 
-    batch_lafs=torch.zeros(batch, max_point_num, 2, 3)
+    batch_lafs=torch.zeros(batch, max_point_num, 2, 3).to(device)
         
 
     for i in range(batch):
@@ -160,6 +164,7 @@ def get_patches_for_batch_iamges(batch_images,LAFs_tensor,size_resize=[16,16], m
     if the b-th image only has P key points, where P< maximum number of keypoint, then [b,P+1,:,:,:] is tensor of zeros
 
     """
+    device= batch_images.device
     batch, _, _, _ = batch_images.shape
     assert batch==LAFs_tensor.shape[0],  "batch size of batch_images doesn't match batch size of LAFs"
     assert max_point_num==LAFs_tensor.shape[1], "please make sure the max_num_point are consistent throughout the process"
@@ -168,14 +173,15 @@ def get_patches_for_batch_iamges(batch_images,LAFs_tensor,size_resize=[16,16], m
     # batch_images must be of size (B,3,H ,W)
     # LAFs_tensor must be of size (B,max_point_num,2,3 )
     
-    patch_tensor=torch.zeros(batch, max_point_num,3, size_resize[0], size_resize[1])
+    patch_tensor=torch.zeros(batch, max_point_num,3, size_resize[0], size_resize[1]).to(device)
     
-    temp1=torch.tensor([batch_images.shape[-2],batch_images.shape[-1]])/2
+    temp1=torch.tensor([batch_images.shape[-2],batch_images.shape[-1]]).to(device)
+    temp1=temp1/2
     temp1=temp1.view(1,1,1,2)
 
     
     for i in range(max_point_num):
-        grid = F.affine_grid(LAFs_tensor[:,i,:,:],torch.Size((batch, 3, size_resize[0], size_resize[1])),align_corners = False)
+        grid = F.affine_grid(LAFs_tensor[:,i,:,:],torch.Size((batch, 3, size_resize[0], size_resize[1])),align_corners = False).to(device)
         grid_normalized=grid/temp1
         grid_normalized=grid_normalized-torch.tensor([1,1]).view(1,1,1,2)
         patch_tensor[:,i,:,:,:] = F.grid_sample(input=batch_images, grid=grid_normalized,mode='bilinear')
