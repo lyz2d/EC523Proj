@@ -14,7 +14,7 @@
 # batch_lafs: tensor of shape '(B,max_point_num,2,3)'
 
 
-# 2. function "get_patches_for_batch_iamges"
+# 2. function "get_patches_for_batch_images"
 # input:
 # (1)batch_images, tensor of size  '(B,3,H,W)'
 # (2)LAFs_tensor, tensor of shape '(B,max_point_num,2,3)'
@@ -146,7 +146,7 @@ def get_lafs_for_batch_images(batch_images,max_point_num=64):
 
 import torch.nn.functional as F
 
-def get_patches_for_batch_iamges(batch_images,LAFs_tensor,size_resize=[16,16], max_point_num=64):
+def get_patches_for_batch_images(batch_images,LAFs_tensor,size_resize=[16,16], max_point_num=64):
     
     """
 
@@ -366,6 +366,7 @@ def get_laf_scale_and_angle(LAF):
 
 
     """
+    device=LAF.device
 
     centerless_laf = LAF[:, :, :2, :2]
     _,eig,V=torch.linalg.svd(centerless_laf[:,:,0:2,0:2])
@@ -374,8 +375,8 @@ def get_laf_scale_and_angle(LAF):
     temp_1= torch.transpose(V[:,:,0:1,0:2],2,3)
     temp=torch.matmul( centerless_laf[:,:,:,0:2]   ,temp_1   )
 
-    angle_rad = torch.atan(temp[..., 1, 0]/temp[..., 0, 0])
-    pi = torch.tensor(3.14159265358979323846)
+    angle_rad = torch.atan(temp[..., 1, 0]/temp[..., 0, 0]).to(device)
+    pi = torch.tensor(3.14159265358979323846).to(device)
     angle_deg=180.0 * angle_rad / pi.type(angle_rad.dtype)
     angle_deg=angle_deg.unsqueeze(-1)
 
