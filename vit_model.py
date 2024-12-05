@@ -31,19 +31,38 @@ class PatchEmbedding(nn.Module):
             nn.Linear(patch_dim, embed_dim),
             nn.LayerNorm(embed_dim),
         )
-        
 
+     # Call "batch_laf=get_lafs_for_batch_images(x,max_point_num=num_patches)" to compute laf
 
-    def forward(self, x):  # the input is batch of img, tensor of shape (B,3,H,W)
+    def forward(self, x,batch_laf):  # the input is batch of img, tensor of shape (B,3,H,W)
         # x = self.projection(x) # x shape: [batch_size, embed_dim, num_patches_height, num_patches_width]
         # x = x.flatten(2) # x shape: [batch_size, embed_dim, num_patches] Merge the height and width into a single sequence
         # x = x.transpose(1, 2) # x shape: [batch_size, num_patches, embed_dim]
-        batch_laf=get_lafs_for_batch_images(x,max_point_num=self.num_patches)
+       
         x=get_patches_for_batch_iamges(x,batch_laf,size_resize=[self.patch_size,self.patch_size], max_point_num=self.num_patches)
         x=rearrange(x, 'b n c h1 w1 -> b n (c h1 w1)')
         x=self.to_patch_embedding(x) 
         
 
+        return x
+
+class PositionalEmbedding(nn.Module):
+    def __init__(self,embed_dim=5):
+        super().__init__()
+        
+        feature_dim = 5 # (scale: 2,angle:1 ,center:2)
+        self.to_Positional_embedding = nn.Sequential(
+            nn.LayerNorm(feature_dim),
+            nn.Linear(feature_dim, embed_dim),
+            nn.LayerNorm(embed_dim),
+        )
+        
+
+
+    def forward(self, batch_laf):  # the input is batch of img, tensor of shape (B,3,H,W)
+        scale,angle,center=get_feature_from_LAF(batch_laf)
+        x=torch.cat((scale,angle,center), -1)
+        x=self.to_Positional_embedding(x) 
         return x
 
 '''
