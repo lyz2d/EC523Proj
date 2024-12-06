@@ -24,12 +24,12 @@ class LafPatchExtractor(nn.Module):
         # laf from (B, P, 2, 3) to (B*P, 2, 3)
         laf = laf.view(-1, 2, 3)
 
-        grid = F.affine_grid(laf, torch.Size((B*P, C, self.patch_size, self.patch_size)), align_corners=True)
+        grid = F.affine_grid(laf, torch.Size((B*P, C, self.patch_size, self.patch_size)), align_corners=False)
 
         # grid to (B, P*patch_size, patch_size, 2) 
         grid = grid.view(B, P*self.patch_size, self.patch_size, 2)
 
-        # Extract patch from image. 
+        # Extract patch from image. Note the patch is aligned in row as a big picture.
         x = F.grid_sample(x, grid, mode='bilinear',align_corners=True) #x: (B, C, P*patch_size, patch_size) 
         return x
 
