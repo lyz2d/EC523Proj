@@ -1,8 +1,39 @@
+# Modified from https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/simple_vit.py
+
+
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from einops import rearrange
 from einops.layers.torch import Rearrange
+
+class LafPatchExtractor(nn.Module):
+    def __init__(self, patch_size=16):
+        super(LafPatchExtractor, self).__init__()
+        self.patch_size = patch_size
+
+    def forward(self, x, laf):
+        '''
+        x: (B, C, H, W)
+        laf: (B, P, 2, 3)
+        '''
+        B, C, H_in, W_in = x.shape
+        P = laf.shape[1]
+
+        # laf from (B, P, 2, 3) to (B*P, 2, 3)
+        laf = laf.view(-1, 2, 3)
+
+        grid = F.affine_grid(laf, torch.Size((B*P, C, self.patch_size, self.patch_size)), align_corners=True)
+
+        # grid to (B, P*patch_size, patch_size, 2) 
+        grid = grid.view(B, P*self.patch_size, self.patch_size, 2)
+
+        # Extract patch from image. 
+        x = F.grid_sample(x, grid, mode='bilinear',align_corners=True) #x: (B, C, P*patch_size, patch_size) 
+        return x
+
+
 
 # helpers
 
