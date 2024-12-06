@@ -12,16 +12,18 @@ import os
 
 # Hyperparameters
 BATCH_SIZE = 64
-IMAGE_SIZE = 160  # Assume square images for simplicity
-PATCH_SIZE = 16
+IMAGE_SIZE = 256  # Assume square images for simplicity
+PATCH_SIZE = 32
 NUM_CLASSES = 100  # ImageNet-100 has 100 classes
-DIM = 512
+DIM = 1024
 DEPTH = 6
-HEADS = 8
-MLP_DIM = 1024
+HEADS = 16
+MLP_DIM = 2048
 LR = 3e-4
-EPOCHS = 90
+EPOCHS = 30
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+torch.set_float32_matmul_precision('medium')
 
 # Data Preparation
 transform = transforms.Compose([
@@ -65,6 +67,18 @@ test_loader = DataLoader(CustomImageDataset(test_data, transform), batch_size=BA
 class SimpleViTModule(pl.LightningModule):
     def __init__(self):
         super().__init__()
+        self.save_hyperparameters({
+            "batch_size": BATCH_SIZE,
+            "image_size": IMAGE_SIZE,
+            "patch_size": PATCH_SIZE,
+            "num_classes": NUM_CLASSES,
+            "dim": DIM,
+            "depth": DEPTH,
+            "heads": HEADS,
+            "mlp_dim": MLP_DIM,
+            "learning_rate": LR,
+            "epochs": EPOCHS
+        })
         self.model = SimpleViT(
             image_size=IMAGE_SIZE,
             patch_size=PATCH_SIZE,
@@ -110,7 +124,8 @@ trainer = pl.Trainer(
     max_epochs=EPOCHS,
     accelerator=DEVICE,
     log_every_n_steps=10,
-    check_val_every_n_epoch=1
+    check_val_every_n_epoch=1,
+    devices = 'auto'
 )
 
 
