@@ -3,3 +3,4 @@ transformer/lightning_logs/
 transformer/__pycache__/
 .vscode/
 lightning_logs/
+imagenet100_log/
