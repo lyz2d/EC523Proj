@@ -33,19 +33,25 @@ class LafPatchExtractor(nn.Module):
         x = F.grid_sample(x, grid, mode='bilinear',align_corners=True) #x: (B, C, P*patch_size, patch_size) 
         return x
 
-class LafPredictor(nn.Module):
-    def __init__(self, patch_count=14):
-        super(LafPredictor, self).__init__()
-        
-        
-    def forward(self, img):
-        pass
 
 
 # helpers
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
+
+# traditional 2D sinusoidal positional embedding.
+# It is not used in the current implementation, but it can be a choice.
+def posemb_sincos_2d(h, w, dim, temperature: int = 10000, dtype = torch.float32):
+    y, x = torch.meshgrid(torch.arange(h), torch.arange(w), indexing="ij")
+    assert (dim % 4) == 0, "feature dimension must be multiple of 4 for sincos emb"
+    omega = torch.arange(dim // 4) / (dim // 4 - 1)
+    omega = 1.0 / (temperature ** omega)
+
+    y = y.flatten()[:, None] * omega[None, :]
+    x = x.flatten()[:, None] * omega[None, :]
+    pe = torch.cat((x.sin(), x.cos(), y.sin(), y.cos()), dim=1)
+    return pe.type(dtype)
 
 # classes
 
@@ -164,3 +170,93 @@ class ViT(nn.Module):
         x = self.to_latent(x)
         return self.mlp_head(x)
     
+
+
+class SIFT_ViT(nn.Module):
+    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+        super().__init__()
+        image_height, image_width = pair(image_size)
+        patch_height, patch_width = pair(patch_size)
+
+        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+
+        num_patches = (image_height // patch_height) * (image_width // patch_width)
+        patch_dim = channels * patch_height * patch_width
+        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+
+        self.sift_predict = nn.Sequential(
+            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
+            nn.Linear(patch_dim, dim),
+            nn.GELU(),
+            nn.Linear(dim, 5),
+            nn.Tanh()
+        )
+
+
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.dropout = nn.Dropout(emb_dropout)
+
+        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+
+        self.pool = pool
+        self.to_latent = nn.Identity()
+
+        self.mlp_head = nn.Linear(dim, num_classes)
+        self.laf_extractor = LafPatchExtractor(patch_size=patch_height)
+        self.cov_embedding = nn.Conv2d(3, dim, kernel_size=patch_size, padding=0)
+
+        x_num = image_width // patch_width
+        y_num = image_height // patch_height
+        self.x_num = x_num
+        self.y_num = y_num
+        self.point_num = x_num*y_num
+        X0,Y0= torch.meshgrid(torch.arange(0.5,x_num), torch.arange(0.5, y_num))
+        # calculate the position of the center of the patch in the image normalized coordinate
+        self.X0=2*(X0/x_num)-1
+        self.Y0=2*(Y0/y_num)-1
+
+    # generate original laf
+    # def original_laf(self, batch_size=1):
+    #     lafs = torch.zeros(batch_size, self.point_num, 2, 3)  # (B, P, 2, 3)
+    #     lafs[:, :, 0, 1] = torch.ones(batch_size, self.point_num)
+    #     lafs[:, :, 1, 0] = torch.ones(batch_size, self.point_num)
+    #     lafs[:, :, 0, 2] = self.X0.flatten()[None, :]
+    #     lafs[:, :, 1, 2] = self.Y0.flatten()[None, :]
+    #     return lafs
+
+
+    # predict lafs from image
+    def predict_lafs(self, img):
+        params = self.sift_predict(img) # (B, P, 5) tx, ty, sx, sy, theta
+        params[:,:,-1] = params[:,:,-1]*torch.pi
+        lafs = torch.zeros(params.shape[0], params.shape[1], 2, 3)  # (B, P, 2, 3)
+        lafs[:, :, 0, 2] = params[:, :, 0]+self.X0.flatten()[None, :] # position shift
+        lafs[:, :, 1, 2] = params[:, :, 1]+self.Y0.flatten()[None, :] # position shift
+        lafs[:,:,0,0] = torch.cos(params[:,:,4])*params[:,:,2]
+        lafs[:,:,0,1] = -torch.sin(params[:,:,4])*params[:,:,3]
+        lafs[:,:,1,0] = torch.sin(params[:,:,4])*params[:,:,2]
+        lafs[:,:,1,1] = torch.cos(params[:,:,4])*params[:,:,3]
+        return lafs
+
+        
+    def forward(self, img):
+
+        lafs = self.predict_lafs(img)
+        x = self.laf_extractor(img, lafs)
+        x = self.cov_embedding(x).flatten(2).transpose(1, 2)
+
+
+        b, n, _ = x.shape
+
+        cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b = b)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding[:, :(n + 1)]
+        x = self.dropout(x)
+
+        x = self.transformer(x)
+
+        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+
+        x = self.to_latent(x)
+        return self.mlp_head(x)
