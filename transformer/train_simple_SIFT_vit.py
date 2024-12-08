@@ -8,8 +8,11 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from simple_vit import ViT
+from simple_vit import ViT, SIFT_ViT
 import os
+
+torch.autograd.set_detect_anomaly(True)
+
 
 
 # Hyperparameters
@@ -100,7 +103,7 @@ class SimpleViTModule(pl.LightningModule):
             "learning_rate": LR,
             "epochs": EPOCHS
         })
-        self.model = ViT(
+        self.model = SIFT_ViT(
             image_size = IMAGE_SIZE,
             patch_size = PATCH_SIZE,
             num_classes = NUM_CLASSES,
@@ -108,6 +111,7 @@ class SimpleViTModule(pl.LightningModule):
             depth = DEPTH,
             heads = HEADS,
             mlp_dim = MLP_DIM,
+            batch_size=BATCH_SIZE,
             dropout = DROP_OUT,
             emb_dropout = EMB_DROP_OUT
         )
@@ -141,14 +145,14 @@ class SimpleViTModule(pl.LightningModule):
 
 
 
-model = SimpleViTModule()
 #model = SimpleViTModule.load_from_checkpoint('/home/yge/deep_learning/EC523Proj/lightning_logs/version_6/checkpoints/epoch=49-step=13050.ckpt')
+model = SimpleViTModule()
 
-logger = TensorBoardLogger(save_dir='./imagenet100_log', name='ViT_logs')
+logger = TensorBoardLogger(save_dir='./imagenet100_log', name='SIFT_ViT_logs')
 checkpoint_callback = ModelCheckpoint(
     save_top_k=-1,  # Save all checkpoints
     every_n_epochs=CHECK_POINT_EVERY,  # Save every 25 epochs
-    dirpath='./imagenet100_log/checkpoints',  # Path to save checkpoints
+    dirpath='./imagenet100_log/SIFT_ViT_checkpoints',  # Path to save checkpoints
     filename='epoch-{epoch:02d}-val_loss-{val_loss:.4f}',  # Filename format
     save_weights_only=False  # Save the entire model
 )

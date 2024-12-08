@@ -173,7 +173,7 @@ class ViT(nn.Module):
 
 
 class SIFT_ViT(nn.Module):
-    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, batch_size, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
@@ -204,7 +204,7 @@ class SIFT_ViT(nn.Module):
 
         self.mlp_head = nn.Linear(dim, num_classes)
         self.laf_extractor = LafPatchExtractor(patch_size=patch_height)
-        self.cov_embedding = nn.Conv2d(3, dim, kernel_size=patch_size, padding=0)
+        self.cov_embedding = nn.Conv2d(3, dim, kernel_size=patch_size, stride=patch_size, padding=0)
 
         x_num = image_width // patch_width
         y_num = image_height // patch_height
@@ -213,8 +213,12 @@ class SIFT_ViT(nn.Module):
         self.point_num = x_num*y_num
         X0,Y0= torch.meshgrid(torch.arange(0.5,x_num), torch.arange(0.5, y_num))
         # calculate the position of the center of the patch in the image normalized coordinate
-        self.X0=2*(X0/x_num)-1
-        self.Y0=2*(Y0/y_num)-1
+        X0=2*(X0/x_num)-1
+        Y0=2*(Y0/y_num)-1
+        self.register_buffer('X0', X0)
+        self.register_buffer('Y0', Y0)
+
+        
 
     # generate original laf
     # def original_laf(self, batch_size=1):
@@ -229,8 +233,9 @@ class SIFT_ViT(nn.Module):
     # predict lafs from image
     def predict_lafs(self, img):
         params = self.sift_predict(img) # (B, P, 5) tx, ty, sx, sy, theta
-        params[:,:,-1] = params[:,:,-1]*torch.pi
-        lafs = torch.zeros(params.shape[0], params.shape[1], 2, 3)  # (B, P, 2, 3)
+        params = params.clone()
+        params[:, :, -1] = params[:, :, -1] * torch.pi
+        lafs = torch.zeros(params.shape[0], params.shape[1], 2, 3, device=next(self.parameters()).device)  # (B, P, 2, 3)
         lafs[:, :, 0, 2] = params[:, :, 0]+self.X0.flatten()[None, :] # position shift
         lafs[:, :, 1, 2] = params[:, :, 1]+self.Y0.flatten()[None, :] # position shift
         lafs[:,:,0,0] = torch.cos(params[:,:,4])*params[:,:,2]
@@ -244,7 +249,8 @@ class SIFT_ViT(nn.Module):
 
         lafs = self.predict_lafs(img)
         x = self.laf_extractor(img, lafs)
-        x = self.cov_embedding(x).flatten(2).transpose(1, 2)
+        x = self.cov_embedding(x)
+        x = x.flatten(2).transpose(1, 2)
 
 
         b, n, _ = x.shape
