@@ -173,7 +173,7 @@ class ViT(nn.Module):
 
 
 class SIFT_ViT(nn.Module):
-    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, batch_size, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
@@ -218,6 +218,7 @@ class SIFT_ViT(nn.Module):
         self.register_buffer('X0', X0)
         self.register_buffer('Y0', Y0)
 
+        self.alpha = nn.Parameter(torch.tensor(0.005))
         
 
     # generate original laf
@@ -232,8 +233,8 @@ class SIFT_ViT(nn.Module):
 
     # predict lafs from image
     def predict_lafs(self, img):
-        params = self.sift_predict(img) # (B, P, 5) tx, ty, sx, sy, theta
-        params = params.clone()
+        pred_params = self.sift_predict(img) # (B, P, 5) tx, ty, sx, sy, theta
+        params = self.alpha*pred_params+(1-self.alpha)*torch.zeros_like(pred_params)
         params[:, :, -1] = params[:, :, -1] * torch.pi
         lafs = torch.zeros(params.shape[0], params.shape[1], 2, 3, device=next(self.parameters()).device)  # (B, P, 2, 3)
         lafs[:, :, 0, 2] = params[:, :, 0]+self.X0.flatten()[None, :] # position shift
@@ -266,3 +267,7 @@ class SIFT_ViT(nn.Module):
 
         x = self.to_latent(x)
         return self.mlp_head(x)
+    
+
+
+    

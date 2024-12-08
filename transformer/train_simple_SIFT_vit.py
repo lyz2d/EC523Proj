@@ -111,7 +111,6 @@ class SimpleViTModule(pl.LightningModule):
             depth = DEPTH,
             heads = HEADS,
             mlp_dim = MLP_DIM,
-            batch_size=BATCH_SIZE,
             dropout = DROP_OUT,
             emb_dropout = EMB_DROP_OUT
         )
