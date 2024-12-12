@@ -163,7 +163,7 @@ trainer = pl.Trainer(
     accelerator=DEVICE,
     log_every_n_steps=10,
     check_val_every_n_epoch=1,
-    devices = 1,
+    devices = 'auto',
     logger=logger,  # Add the logger here
     callbacks=[checkpoint_callback]  # Add the checkpoint callback here
     )
