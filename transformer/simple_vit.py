@@ -4,6 +4,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torchvision.transforms import ToTensor, Grayscale
 
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
@@ -270,4 +271,93 @@ class SIFT_ViT(nn.Module):
     
 
 
+class Ssd_ViT(nn.Module):
+    def __init__(self, *, detector, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+        super().__init__()
+        image_height, image_width = pair(image_size)
+        patch_height, patch_width = pair(patch_size)
+        self.patch_size = patch_size
+
+        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+
+        self.x_num = image_width // patch_width
+        self.y_num = image_height // patch_height
+
+        num_patches = (image_height // patch_height) * (image_width // patch_width)
+        self.num_patches = num_patches
+        patch_dim = channels * patch_height * patch_width
+        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+
+        self.to_patch = Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width)
+        
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
+            nn.LayerNorm(patch_dim),
+            nn.Linear(patch_dim, dim),
+            nn.LayerNorm(dim),
+        )
+
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.dropout = nn.Dropout(emb_dropout)
+
+        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+
+        self.pool = pool
+        self.to_latent = nn.Identity()
+
+        self.mlp_head = nn.Linear(dim, num_classes)
+
+        self.detector = detector
+        self.grayscale = Grayscale(num_output_channels=1)
+
+        W0,H0= torch.meshgrid(torch.arange(self.x_num)*self.patch_size, torch.arange(self.y_num)*self.patch_size) # P
+        laf = torch.tensor([[[1,0,0],[0,1,0]]])
+        self.lafs = laf.repeat(self.x_num*self.y_num, 1, 1) # (P, 2, 3)
+        self.lafs[:,0,2] = W0.flatten()
+        self.lafs[:,1,2] = H0.flatten() # (P, 2, 3)
+
+        self.extractor = LafPatchExtractor(patch_size=patch_size)
+
+    def forward(self, img):
+        shifts = self.detect_shifts(img)
+        patches = self.extract_patches(img, shifts) # patches is a big picture of patches
+
+        # Covolutional embedding on the big picture to make patches into embeddings
+        x = self.cov_embedding(patches)
+        x = x.flatten(2).transpose(1, 2)
+
+        b, n, _ = x.shape
+
+        cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b = b)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding[:, :(n + 1)]
+        x = self.dropout(x)
+
+        x = self.transformer(x)
+
+        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+
+        x = self.to_latent(x)
+        return self.mlp_head(x)
     
+    def detect_shifts(self, img):
+        img = self.grayscale(img)
+        respose = self.detector(img)
+        respose_patch = self.to_patch(respose) # (B, P, 256)
+        indice = respose_patch.argmax(dim=-1)
+        shift_H = indice//self.patch_size # (B, P)
+        shift_W = indice%self.patch_size # (B, P)
+        return shift_W, shift_H
+        
+
+    def extract_patches(self, img, shifts):
+        shift_W, shift_H = shifts
+        padding = self.patch_size//2
+        batched_laf = self.lafs.view(1,-1).repeat(img.shape[0], 1, 1, 1) # (B, P, 2, 3)
+        batched_laf[:,:,0,2] = batched_laf[:,:,0,2] + shift_W + padding
+        batched_laf[:,:,1,2] = batched_laf[:,:,1,2] + shift_H + padding
+        img = F.pad(img, (padding,padding,padding,padding,), value=0)
+        patches = self.extractor(img, batched_laf)
+
+        return patches
