@@ -8,8 +8,9 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from simple_vit import ViT, SIFT_ViT
+from simple_vit import ViT, SIFT_ViT, Ssd_ViT
 import os
+from kornia.feature import harris_response
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -87,7 +88,7 @@ test_loader = DataLoader(CustomImageDataset(test_data, val_transforms), batch_si
 
 # Vision Transformer Model
 class SimpleViTModule(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, detector):
         super().__init__()
         self.save_hyperparameters({
             "batch_size": BATCH_SIZE,
@@ -103,7 +104,8 @@ class SimpleViTModule(pl.LightningModule):
             "learning_rate": LR,
             "epochs": EPOCHS
         })
-        self.model = SIFT_ViT(
+        self.model = Ssd_ViT(
+            detector=detector,
             image_size = IMAGE_SIZE,
             patch_size = PATCH_SIZE,
             num_classes = NUM_CLASSES,
@@ -145,13 +147,13 @@ class SimpleViTModule(pl.LightningModule):
 
 
 #model = SimpleViTModule.load_from_checkpoint('/home/yge/deep_learning/EC523Proj/lightning_logs/version_6/checkpoints/epoch=49-step=13050.ckpt')
-model = SimpleViTModule()
+model = SimpleViTModule(harris_response)
 
-logger = TensorBoardLogger(save_dir='./imagenet100_log', name='SIFT_ViT_logs')
+logger = TensorBoardLogger(save_dir='./imagenet100_log', name='Ssd_ViT_logs')
 checkpoint_callback = ModelCheckpoint(
     save_top_k=-1,  # Save all checkpoints
     every_n_epochs=CHECK_POINT_EVERY,  # Save every 25 epochs
-    dirpath='./imagenet100_log/SIFT_ViT_checkpoints',  # Path to save checkpoints
+    dirpath='./imagenet100_log/Ssd_ViT_checkpoints',  # Path to save checkpoints
     filename='epoch-{epoch:02d}-val_loss-{val_loss:.4f}',  # Filename format
     save_weights_only=False  # Save the entire model
 )
@@ -161,7 +163,7 @@ trainer = pl.Trainer(
     accelerator=DEVICE,
     log_every_n_steps=10,
     check_val_every_n_epoch=1,
-    devices = 'auto',
+    devices = 1,
     logger=logger,  # Add the logger here
     callbacks=[checkpoint_callback]  # Add the checkpoint callback here
     )

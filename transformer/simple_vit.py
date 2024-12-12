@@ -25,7 +25,7 @@ class LafPatchExtractor(nn.Module):
         # laf from (B, P, 2, 3) to (B*P, 2, 3)
         laf = laf.view(-1, 2, 3)
 
-        grid = F.affine_grid(laf, torch.Size((B*P, C, self.patch_size, self.patch_size)), align_corners=False)
+        grid = F.affine_grid(laf.to(torch.float32), torch.Size((B*P, C, self.patch_size, self.patch_size)), align_corners=False)
 
         # grid to (B, P*patch_size, patch_size, 2) 
         grid = grid.view(B, P*self.patch_size, self.patch_size, 2)
@@ -313,11 +313,13 @@ class Ssd_ViT(nn.Module):
 
         W0,H0= torch.meshgrid(torch.arange(self.x_num)*self.patch_size, torch.arange(self.y_num)*self.patch_size) # P
         laf = torch.tensor([[[1,0,0],[0,1,0]]])
-        self.lafs = laf.repeat(self.x_num*self.y_num, 1, 1) # (P, 2, 3)
-        self.lafs[:,0,2] = W0.flatten()
-        self.lafs[:,1,2] = H0.flatten() # (P, 2, 3)
+        lafs = laf.repeat(self.x_num*self.y_num, 1, 1) # (P, 2, 3)
+        lafs[:,0,2] = W0.flatten()
+        lafs[:,1,2] = H0.flatten() # (P, 2, 3)
+        self.register_buffer('lafs', lafs)
 
         self.extractor = LafPatchExtractor(patch_size=patch_size)
+        self.cov_embedding = nn.Conv2d(3, dim, kernel_size=patch_size, stride=patch_size, padding=0)
 
     def forward(self, img):
         shifts = self.detect_shifts(img)
@@ -343,6 +345,7 @@ class Ssd_ViT(nn.Module):
     
     def detect_shifts(self, img):
         img = self.grayscale(img)
+        img = self.detector(img)
         respose = self.detector(img)
         respose_patch = self.to_patch(respose) # (B, P, 256)
         indice = respose_patch.argmax(dim=-1)
@@ -354,7 +357,7 @@ class Ssd_ViT(nn.Module):
     def extract_patches(self, img, shifts):
         shift_W, shift_H = shifts
         padding = self.patch_size//2
-        batched_laf = self.lafs.view(1,-1).repeat(img.shape[0], 1, 1, 1) # (B, P, 2, 3)
+        batched_laf = torch.unsqueeze(self.lafs, 0).repeat(img.shape[0], 1, 1, 1) # (B, P, 2, 3)
         batched_laf[:,:,0,2] = batched_laf[:,:,0,2] + shift_W + padding
         batched_laf[:,:,1,2] = batched_laf[:,:,1,2] + shift_H + padding
         img = F.pad(img, (padding,padding,padding,padding,), value=0)
