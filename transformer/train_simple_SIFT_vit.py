@@ -18,7 +18,7 @@ torch.autograd.set_detect_anomaly(True)
 
 # Hyperparameters
 BATCH_SIZE = 128
-IMAGE_SIZE = 224  # Assume square images for simplicity
+IMAGE_SIZE = 256  # Assume square images for simplicity
 PATCH_SIZE = 16
 NUM_CLASSES = 100
 DIM = 512
@@ -164,6 +164,7 @@ trainer = pl.Trainer(
     log_every_n_steps=10,
     check_val_every_n_epoch=1,
     devices = 'auto',
+    strategy='ddp_find_unused_parameters_true',
     logger=logger,  # Add the logger here
     callbacks=[checkpoint_callback]  # Add the checkpoint callback here
     )

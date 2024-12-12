@@ -277,6 +277,7 @@ class Ssd_ViT(nn.Module):
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
         self.patch_size = patch_size
+        self.image_size = image_size
 
         assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
 
@@ -311,8 +312,12 @@ class Ssd_ViT(nn.Module):
         self.detector = detector
         self.grayscale = Grayscale(num_output_channels=1)
 
+        # self.embedding_linear = nn.Linear(patch_size**2*3, dim)
+
+        
+
         W0,H0= torch.meshgrid(torch.arange(self.x_num)*self.patch_size, torch.arange(self.y_num)*self.patch_size) # P
-        laf = torch.tensor([[[1,0,0],[0,1,0]]])
+        laf = torch.tensor([[[1,0,0],[0,1,0]]], dtype=torch.float32) # (1, 2, 3)
         lafs = laf.repeat(self.x_num*self.y_num, 1, 1) # (P, 2, 3)
         lafs[:,0,2] = W0.flatten()
         lafs[:,1,2] = H0.flatten() # (P, 2, 3)
@@ -323,12 +328,15 @@ class Ssd_ViT(nn.Module):
 
     def forward(self, img):
         shifts = self.detect_shifts(img)
-        patches = self.extract_patches(img, shifts) # patches is a big picture of patches
+        patches = self.extract_patches(img, shifts)
 
         # Covolutional embedding on the big picture to make patches into embeddings
         x = self.cov_embedding(patches)
         x = x.flatten(2).transpose(1, 2)
 
+        # below is for extract_patches2
+        # x = patches.view(patches.shape[0], patches.shape[1], -1)
+        # x = self.embedding_linear(x)
         b, n, _ = x.shape
 
         cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b = b)
@@ -344,9 +352,8 @@ class Ssd_ViT(nn.Module):
         return self.mlp_head(x)
     
     def detect_shifts(self, img):
-        img = self.grayscale(img)
-        img = self.detector(img)
-        respose = self.detector(img)
+        gray_scale_img = self.grayscale(img)
+        respose = self.detector(gray_scale_img)
         respose_patch = self.to_patch(respose) # (B, P, 256)
         indice = respose_patch.argmax(dim=-1)
         shift_H = indice//self.patch_size # (B, P)
@@ -354,13 +361,31 @@ class Ssd_ViT(nn.Module):
         return shift_W, shift_H
         
 
+    # def extract_patches2(self, img, shifts):
+    #     shift_W, shift_H = shifts
+    #     padding = self.patch_size//2
+    #     img = F.pad(img, (padding,padding,padding,padding,), value=0)
+    #     patches = torch.zeros(img.shape[0], self.num_patches, 3, self.patch_size, self.patch_size, device=img.device)
+    #     for b in range(shift_H.shape[0]):
+    #         for p in range(shift_H.shape[1]):
+    #             patches[b,p]=img[b,:,shift_H[b,p]:shift_H[b,p]+self.patch_size,shift_W[b,p]:shift_W[b,p]+self.patch_size]
+
+    #     return patches #(B, P, 3, patch_size, patch_size)
+    
     def extract_patches(self, img, shifts):
         shift_W, shift_H = shifts
         padding = self.patch_size//2
         batched_laf = torch.unsqueeze(self.lafs, 0).repeat(img.shape[0], 1, 1, 1) # (B, P, 2, 3)
-        batched_laf[:,:,0,2] = batched_laf[:,:,0,2] + shift_W + padding
-        batched_laf[:,:,1,2] = batched_laf[:,:,1,2] + shift_H + padding
+        batched_laf[:,:,0,2] = self.pixel2torch(batched_laf[:,:,0,2] + shift_W)
+        batched_laf[:,:,1,2] = self.pixel2torch(batched_laf[:,:,1,2] + shift_H)
+        batched_laf[:,:,0,0] *= 1/self.x_num
+        batched_laf[:,:,1,1] *= 1/self.y_num
         img = F.pad(img, (padding,padding,padding,padding,), value=0)
         patches = self.extractor(img, batched_laf)
 
         return patches
+
+    def pixel2torch(self, pixel):
+        half_size = self.image_size/2 
+        y = (pixel-half_size)/half_size
+        return y
