@@ -1,7 +1,7 @@
 # EC523Proj
 
 This repository is for the BU EC523 Project, where implement a Scale-invariant feature transform (SIFT)-based Transformer for image classification. Here we guide tokenization/patching with SIFT as the local feature detection algorithm. These patches are featurized according to their size, orientation, and position. The main part is included in the file, transformer, which has the SIFT code, Transformer code, and the related data set, Tiny_ImageNet. The following figure is a process illustration.
-![The SIFT-based Transformer framework running process](./process.png)
+![The SIFT-based Transformer framework running process](./illustration.png)
 
 # How to Use
 Run the `train.py` file to train the model. The directory path need to be modified. This will automatically make the image patches and features. 
