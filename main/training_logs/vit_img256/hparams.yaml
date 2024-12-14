@@ -1,0 +1,14 @@
+DROP_OUT: 0.1
+EMB_DROP_OUT: 0.1
+batch_size: 64
+dataset: ImageNet_100
+depth: 6
+dim: 512
+epochs: 150
+heads: 16
+image_size: 256
+learning_rate: 0.0003
+mlp_dim: 1024
+module name: ViT
+num_classes: 100
+patch_size: 16
