@@ -14,7 +14,8 @@ Case 1(Lafs Transformer): IMAGE_SIZE = 128, NUM_PATCHES = 64
 Case 2(Lafs Transformer): IMAGE_SIZE = 256, NUM_PATCHES = 256
 Case 3(baseline Transformer): IMAGE_SIZE = 128, NUM_PATCHES = 64
 Case 4(baseline Transformer): IMAGE_SIZE = 256, NUM_PATCHES = 256
-Case 5(baseline Transformer with data augmentation): IMAGE_SIZE = 256, NUM_PATCHES = 256
+Case 5(baseline Transformer with data augmentation): IMAGE_SIZE = 128, NUM_PATCHES = 64
+Case 6(baseline Transformer with data augmentation): IMAGE_SIZE = 256, NUM_PATCHES = 256
 
 ### Lafs Generation
 Run 'main/lafs/add_laf.py' file to generate the lafs for each image in the ImageNet_100 datasets. 
