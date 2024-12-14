@@ -13,3 +13,7 @@ First get patches from all images in the dataset using the `get_patch_and_featur
 
 ### Dataset
 The dataset used is TinyImagenet, which has 110k 64x64 colored images with 200 classes. 
+
+In Kornia, LAF stands for Local Affine Frames.
+
+LAFs are used in computer vision for describing and working with local features. They represent the local geometric structure around a keypoint, capturing the scale, orientation, and local affine properties. This makes LAFs robust for tasks like image matching, transformation, and feature detection under varying conditions such as scaling, rotation, and perspective distortions.
