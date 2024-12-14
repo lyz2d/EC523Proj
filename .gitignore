@@ -4,3 +4,4 @@ transformer/__pycache__/
 .vscode/
 lightning_logs/
 imagenet100_log/
+unused_code/transformer/__pycache__/
