@@ -4,12 +4,12 @@ import numpy as np
 
 # Paths to the TensorBoard log file directories
 log_dirs = [
-    ("training_logs/laf_img128_p64", "Our method, 64 patches"),
-    ("training_logs/laf_img256_p256", "Our method, 256 patches"),
-    ("training_logs/vit_img128", "ViT, 64 patches"),
-    ("training_logs/vit_img256", "ViT, 256 patches"),
-    ("training_logs/ViT_img128_withDA", "ViT with DA, 64 patches"),
-    ("training_logs/ViT_img256_withDA", "ViT with DA, 256 patches")
+    ("main/training_logs/laf_img128_p64", "Our method, 64 patches"),
+    ("main/training_logs/laf_img256_p256", "Our method, 256 patches"),
+    ("main/training_logs/vit_img128", "ViT, 64 patches"),
+    ("main/training_logs/vit_img256", "ViT, 256 patches"),
+    ("main/training_logs/ViT_img128_withDA", "ViT with DA, 64 patches"),
+    ("main/training_logs/ViT_img256_withDA", "ViT with DA, 256 patches")
 ]
 
 # Initialize plot
@@ -52,3 +52,4 @@ plt.ylabel("Validation Accuracy (%)", fontdict=font)
 plt.title("Validation Accuracy Across Experiments", fontdict=font)
 plt.legend(prop={'size': 14})
 plt.grid(True)
+plt.show()
