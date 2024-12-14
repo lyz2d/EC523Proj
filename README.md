@@ -1,6 +1,6 @@
 # EC523Proj
 
-This repository is for the BU EC523 Project Fall 2024, where implement a Lafs(local affine frames)-based Transformer for image classification. Here we guide tokenization/patching with KeyNet as the local feature detection algorithm. These patches are featurized according to their size, orientation, and position. The following figure is a process illustration.
+This repository is for the BU EC523 Project Fall 2024, where we implement Lafs (local affine frames)-based Transformer for image classification. Here we guide tokenization/patching with KeyNet as the local feature detection algorithm. These patches are featurized according to their size, orientation, and position. The following figure is a process illustration.
 ![The lafs-based Transformer framework running process](./illustration.png)
 
 ## Dataset
