@@ -28,6 +28,8 @@ MLP_DIM = 1024
 DROP_OUT = 0.1
 EMB_DROP_OUT = 0.1
 
+TEMP = 5.0
+
 LR = 3e-4
 EPOCHS = 75
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -102,7 +104,8 @@ class SimpleViTModule(pl.LightningModule):
             "DROP_OUT" : DROP_OUT,
             "EMB_DROP_OUT" : EMB_DROP_OUT,
             "learning_rate": LR,
-            "epochs": EPOCHS
+            "epochs": EPOCHS,
+            "temp": TEMP
         })
         self.model = Ssd_ViT(
             detector=detector,
@@ -114,7 +117,8 @@ class SimpleViTModule(pl.LightningModule):
             heads = HEADS,
             mlp_dim = MLP_DIM,
             dropout = DROP_OUT,
-            emb_dropout = EMB_DROP_OUT
+            emb_dropout = EMB_DROP_OUT,
+            temp=TEMP
         )
         self.criterion = nn.CrossEntropyLoss()
 
@@ -163,7 +167,7 @@ trainer = pl.Trainer(
     accelerator=DEVICE,
     log_every_n_steps=10,
     check_val_every_n_epoch=1,
-    devices = 'auto',
+    devices = 1,
     strategy='ddp_find_unused_parameters_true',
     logger=logger,  # Add the logger here
     callbacks=[checkpoint_callback]  # Add the checkpoint callback here
