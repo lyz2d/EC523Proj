@@ -5,7 +5,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision.datasets import ImageFolder
-from SIFT.get_patch_and_feature import get_lafs_for_batch_images
+from get_patch_and_feature import get_lafs_for_batch_images
 import kornia.feature as KF
 import time
 
