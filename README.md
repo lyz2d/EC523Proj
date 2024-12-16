@@ -10,8 +10,7 @@ The dataset used is ImageNet_100, which has 1300 colored training images for eac
 Note that the follwing training files are supposed to run on SCC with the access to the directory: '/projectnb/ec523kb/projects/teams_Fall_2024/Team_3', which is the location of the datasets (ImageNet_100, '/hg_cache/', and corresponding lafs, '/data/'). 
 
 ## How to Use 
-### Required Packages
-pytorch, datasets, torchvision, kornia, einops, pytorch-lightning, matplotlib, numpy
+Running 'auxiliary_SCC/train_sample.qsub' on SCC to derive an example. It includes two codes to run: generating LAFs for the whole dataset and training the proposed method's model with resized image size 256x256 and patch number 256. 
 
 ### Define Hyperparameters for Different Cases 
 There are 5 sets of hyperparameter for performance comparison: IMAGE_SIZE(Resized image size) and NUM_PATCHES (Numer of patches for each image). All the other hyperparameters remain the same for the cases. Note that there is number of patch option for baseline ViT as it is a variable depend on image size in the case.
