@@ -63,13 +63,13 @@ for batch_idx, (images, labels, indices) in enumerate(tqdm(train_loader, desc="P
     lafs = KFLAF(images)  # Compute LAF for batch
     for idx, laf in zip(indices, lafs):
         lafs_list_train[idx] = laf  # Store each LAF in the list using the dataset index
-torch.save(lafs_list_train, "lafs_train.pt")
+torch.save(lafs_list_train, "/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/FinalV/main/lafs/lafs_train.pt")
 
 for batch_idx, (images, labels, indices) in enumerate(tqdm(val_loader, desc="Processing Batches")):
      lafs = get_lafs_for_batch_images(images, max_point_num=MAX_POINT_NUM)  # Compute LAF for batch
      for idx, laf in zip(indices, lafs):
          lafs_list_val[idx] = laf.cpu()  # Store each LAF in the list using the dataset index
-torch.save(lafs_list_val, "lafs_val.pt")
+torch.save(lafs_list_val, "/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/FinalV/main/lafs/lafs_val.pt")
 
 
 
