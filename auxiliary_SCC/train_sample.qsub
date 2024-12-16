@@ -7,13 +7,13 @@
 #$ -l h_rt=40:00:00
 
 # Request a GPU
-#$ -l gpus=1
+#$ -l gpus=3
 
 # Request GPU compute capability
 #$ -l gpu_c=6.0
 
 # Request multiple CPU
-#$ -pe omp 4
+#$ -pe omp 12
 
 # Combine output and error streams
 #$ -j y
@@ -37,4 +37,4 @@ echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 
 # Run script
 python /main/lafs/add_laf.py --cuda
-python /auxiliary_SCC/train_simple_vit_with_laf_img256_p256.py --cuda
+python /main/traning/train_vit_with_laf.py --cuda
