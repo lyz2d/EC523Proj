@@ -36,4 +36,5 @@ conda activate fall-2024-pyt
 echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 
 # Run script
-python train_simple_vit_with_laf_img256_p256.py --cuda
+python /main/lafs/add_laf.py --cuda
+python /auxiliary_SCC/train_simple_vit_with_laf_img256_p256.py --cuda
