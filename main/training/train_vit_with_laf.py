@@ -14,7 +14,7 @@ import os
 
 # Hyperparameters
 BATCH_SIZE = 64
-IMAGE_SIZE = 128  # Assume square images for simplicity
+IMAGE_SIZE = 256  # Assume square images for simplicity
 PATCH_SIZE = 16
 NUM_CLASSES = 100
 DIM = 512
@@ -26,7 +26,7 @@ EMB_DROP_OUT = 0.1
 
 MODULE_NAME="ViT_with_laf"
 DATASET= "ImageNet_100"
-NUM_PATCHES=64
+NUM_PATCHES=256
 
 LR = 3e-4
 EPOCHS = 150
