@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from simple_vit_with_laf import ViT
+from models.vit_with_laf import ViT
 import os
 
 
