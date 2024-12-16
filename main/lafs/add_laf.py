@@ -9,9 +9,9 @@ from get_patch_and_feature import get_lafs_for_batch_images
 import kornia.feature as KF
 import time
 
-IMG_SIZE = 128
+IMG_SIZE = 256
 BATCH_SIZE = 64
-MAX_POINT_NUM = 128
+MAX_POINT_NUM = 256
 
 dataset = load_dataset("ilee0022/ImageNet100", cache_dir='/projectnb/ec523kb/projects/teams_Fall_2024/Team_3/hg_cache')
 train_img = dataset['train']
