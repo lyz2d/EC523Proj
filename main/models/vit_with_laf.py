@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
-from get_patch_and_feature import *
+from lafs.get_patch_and_feature import *
 
 class LafPatchExtractor(nn.Module):
     def __init__(self, patch_size=16):
