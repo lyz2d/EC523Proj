@@ -1,6 +1,4 @@
 # Modified from https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/simple_vit.py
-
-
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -170,10 +168,6 @@ class ViT(nn.Module):
         self.patch_size = patch_size
         self.embed_dim = dim
 
-
-
-
-
         # image_height, image_width = pair(image_size)
         # patch_height, patch_width = pair(patch_size)
 
@@ -204,44 +198,27 @@ class ViT(nn.Module):
 
     def forward(self, img,laf):
         device = img.device
-
-
         # laf = get_lafs_for_batch_images(img,max_point_num=self.num_patches) # num_patch = 
 
         x = self.patch_embed(img,laf)
-
-
-
 
         # x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
         cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b = b)
         cls_tokens = cls_tokens + self.pos_embedding2[:, :].clone()
-
-
-
-        
-
-
         y = self.pos_embed(laf)
         x = x+y
 
         x = torch.cat((cls_tokens, x), dim=1)
         # y=torch.cat((self.pos_embedding2, y), dim=1)
 
-
-    
-
         # x += self.pos_embedding[:, :(n + 1)]
 
-
         x = self.dropout(x)
-
         x = self.transformer(x)
-
         x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
-
         x = self.to_latent(x)
+        
         return self.mlp_head(x)
     
