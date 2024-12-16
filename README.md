@@ -10,7 +10,10 @@ The dataset used is ImageNet_100, which has 1300 colored training images for eac
 Note that the follwing training files are supposed to run on SCC with the access to the directory: '/projectnb/ec523kb/projects/teams_Fall_2024/Team_3', which is the location of the datasets (ImageNet_100, '/hg_cache/', and corresponding lafs, '/data/'). 
 
 ## How to Use 
-### Define hyperparameters for different cases 
+### Required Packages
+pytorch, datasets, torchvision, kornia, einops, pytorch-lightning, matplotlib, numpy
+
+### Define Hyperparameters for Different Cases 
 There are 5 sets of hyperparameter for performance comparison: IMAGE_SIZE(Resized image size) and NUM_PATCHES (Numer of patches for each image). All the other hyperparameters remain the same for the cases. Note that there is number of patch option for baseline ViT as it is a variable depend on image size in the case.
 
 Case 1(Lafs Transformer): IMAGE_SIZE = 128, NUM_PATCHES = 64
